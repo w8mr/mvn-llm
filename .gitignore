@@ -1,0 +1,12 @@
+# Binaries
+mvn-llm
+
+# IDE
+.idea/
+*.iml
+
+# Build output
+out/
+
+# Test output
+testdata/*/target/
