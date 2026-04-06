@@ -1,0 +1,9 @@
+[INFO] Scanning for projects...
+[ERROR] [ERROR] The projects in the reactor contain a cyclic reference: Edge between 'Vertex{label='com.example:module-b:1.0-SNAPSHOT'}' and 'Vertex{label='com.example:module-a:1.0-SNAPSHOT'}' introduces to cycle in the graph com.example:module-a:1.0-SNAPSHOT --> com.example:module-b:1.0-SNAPSHOT --> com.example:module-a:1.0-SNAPSHOT @ 
+[ERROR] The projects in the reactor contain a cyclic reference: Edge between 'Vertex{label='com.example:module-b:1.0-SNAPSHOT'}' and 'Vertex{label='com.example:module-a:1.0-SNAPSHOT'}' introduces to cycle in the graph com.example:module-a:1.0-SNAPSHOT --> com.example:module-b:1.0-SNAPSHOT --> com.example:module-a:1.0-SNAPSHOT -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/ProjectCycleException

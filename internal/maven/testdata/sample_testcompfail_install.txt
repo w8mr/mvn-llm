@@ -1,0 +1,56 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.example:sample-testcompfail >-------------------
+[INFO] Building sample-testcompfail 1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ sample-testcompfail ---
+[INFO] Deleting /Users/tu23dc/Developer/Agentic/maven-tool/testdata/sample-testcompfail/target
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ sample-testcompfail ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] skip non existing resourceDirectory /Users/tu23dc/Developer/Agentic/maven-tool/testdata/sample-testcompfail/src/main/resources
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ sample-testcompfail ---
+[INFO] Recompiling the module because of changed source code.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 1 source file with javac [debug target 11] to target/classes
+[WARNING] system modules path not set in conjunction with -source 11
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ sample-testcompfail ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] skip non existing resourceDirectory /Users/tu23dc/Developer/Agentic/maven-tool/testdata/sample-testcompfail/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ sample-testcompfail ---
+[INFO] Recompiling the module because of changed dependency.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 1 source file with javac [debug target 11] to target/test-classes
+[INFO] -------------------------------------------------------------
+[WARNING] COMPILATION WARNING : 
+[INFO] -------------------------------------------------------------
+[WARNING] system modules path not set in conjunction with -source 11
+[INFO] 1 warning
+[INFO] -------------------------------------------------------------
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /Users/tu23dc/Developer/Agentic/maven-tool/testdata/sample-testcompfail/src/test/java/com/example/BrokenTest.java:[9,18] ';' expected
+[INFO] 1 error
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.539 s
+[INFO] Finished at: 2026-04-06T00:40:41+02:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:testCompile (default-testCompile) on project sample-testcompfail: Compilation failure
+[ERROR] /Users/tu23dc/Developer/Agentic/maven-tool/testdata/sample-testcompfail/src/test/java/com/example/BrokenTest.java:[9,18] ';' expected
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
