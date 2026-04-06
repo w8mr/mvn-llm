@@ -30,7 +30,7 @@ release:
   draft: false
   name_template: '{{ .Tag }}'
 
-brews:
+homebrew_casks:
   - name: mvn-llm
     repository:
       owner: w8mr
