@@ -10,10 +10,4 @@ out/
 
 # Test output
 testdata/*/target/
-!testdata/sample-packagefail/target/
-!testdata/sample-packagefail/target/sample-packagefail-1.0-SNAPSHOT.jar
-!testdata/sample-testfail/module-a/target/
-!testdata/sample-testfail/module-a/target/surefire-reports/
-!testdata/sample-testfail/module-a/target/surefire-reports/TEST-com.example.CalculatorTest.xml
-!testdata/sample-testfail/module-a/target/surefire-reports/com.example.CalculatorTest.txt
 

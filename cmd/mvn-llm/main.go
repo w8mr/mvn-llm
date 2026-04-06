@@ -34,7 +34,7 @@ func main() {
 	goal := args[0]
 
 	ctx := context.Background()
-	var mvnOut string
+	var mvnOut interface{}
 	var mvnErr error
 
 	opts := maven.MavenOpts{
@@ -62,22 +62,37 @@ func main() {
 	// For all other goals, use generalized handler
 	mvnOut, mvnErr = intent.HandleMavenGoal(ctx, *projectRoot, goal, opts)
 
-	// Parse output for build goals
-	result := maven.ParseMavenOutput(mvnOut, *projectRoot)
-
-	if *output == "json" {
-		jsonOutput := result.ToJSON()
-		if *outputFile != "" {
-			os.WriteFile(*outputFile, []byte(jsonOutput), 0644)
-		} else {
-			fmt.Println(jsonOutput)
+	// If mvnOut is a string (raw output, not a known build/test phase), just print it
+	if outStr, ok := mvnOut.(string); ok {
+		fmt.Println(outStr)
+		if mvnErr != nil {
+			os.Exit(1)
 		}
-	} else {
-		summary := result.GetAgentSummary()
-		fmt.Println(summary)
+		return
 	}
 
-	if mvnErr != nil || result.Status == "BUILD FAILURE" {
+	// If mvnOut is a parsed result (MavenOutput) or similar, cast and handle output format
+	if result, ok := mvnOut.(maven.MavenOutput); ok {
+		if *output == "json" {
+			jsonOutput := result.ToJSON()
+			if *outputFile != "" {
+				os.WriteFile(*outputFile, []byte(jsonOutput), 0644)
+			} else {
+				fmt.Println(jsonOutput)
+			}
+		} else {
+			summary := result.GetAgentSummary()
+			fmt.Println(summary)
+		}
+		if mvnErr != nil || result.Status == "BUILD FAILURE" {
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Fallback: print Go-style value output
+	fmt.Printf("%+v\n", mvnOut)
+	if mvnErr != nil {
 		os.Exit(1)
 	}
 }
