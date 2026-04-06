@@ -67,7 +67,7 @@ Recommended flags for LLMs:
 
 | Flag                       | Purpose                                                    |
 |---------------------------|------------------------------------------------------------|
-| `-o text|json`            | Agent-friendly output: summary text or structured JSON     |
+| `-o text\|json`            | Agent-friendly output: summary text or structured JSON     |
 | `-output-file <path>`     | Write JSON/text to file for further LLM consumption        |
 | `-rf <module>`            | Resume from Maven module (LLMs can auto-retry)             |
 | `-dep-ancestor <id>`      | Show ancestors for a dependency (dependency reasoning)      |
