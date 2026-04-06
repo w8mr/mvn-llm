@@ -1,22 +1,26 @@
 # mvn-llm
 
-A Robust, Structured Maven Build & Analysis CLI for LLMs and Developers
+A Robust, Structured Maven Build & Analysis CLI for Language Model Agents
 
 ## Why?
 
-Modern LLM-based agents and many developer tools often struggle to understand, reason about, and automate Maven builds—especially for complex multi-module projects and CI/CD. This tool provides a predictable and parseable interface to Maven that includes:
-- Structured, reliable output for dependency trees, build/test phases, errors, and affected modules
-- Usable by LLM agents, scripts, GitHub Actions, or humans who want clean summaries and actionable details
-- Unified handler for all Maven phases (install, test, compile, package, etc.) and robust dependency/ancestor tracing
+Most Language Model (LLM) agents struggle to automate or interpret Maven builds, especially in complex multi-module projects and CI/CD pipelines. `mvn-llm` enables LLMs to:
+- Get concise, machine-readable summaries of any Maven phase or failure (for follow-up steps, dialogue, or planning)
+- Parse dependency trees, errors, affected modules, and ancestry with stable, deterministic output
+- Drive build/test and dependency analysis autonomously, using declarative intent and actionable JSON or one-line text summaries
+- Integrate seamlessly into LLM orchestration, agent frameworks, and advanced automation
+
+Developers, scripts, and CI tasks can also use the CLI for the same structured outputs and uniform build interface.
+
 
 ## What?
 
-- Wraps Maven with a CLI that:  
-  - Outputs structured machine- and human-friendly summaries for all phases/goals
-  - Understands and tracks module ancestry, dependency trees, and errors precisely  
-  - Detects resume points, build errors, test results, and full ancestry for any dependency or module
-- Works cross-platform in CI and developer shells
-- Maintains up-to-date test fixtures so outputs are trustworthy and regression-proof
+- Provides a predictable, parseable CLI for Maven that speaks the language of LLMs:
+  - Outputs single-line, summary text ideal for agents or chat-based feedback ("SUCCESS - Tests run: 3, Failures: 0" or error root cause)
+  - Offers a full, normalized JSON schema for all goal/phases (install, test, package, deps, etc.)
+  - Clearly traces error locations, resume points, module ancestry, and dependency relationships
+- Lets agents request high-level actions or deep introspection using simple arguments and flags
+- Also works in CI, build scripts, or directly for developers seeking reliable and regression-proof summaries
 
 ## How?
 
@@ -44,37 +48,47 @@ cd maven-tool
 make      # or: go build -o mvn-llm ./cmd/mvn-llm
 ```
 
-### Usage
+### Usage: LLM Agent Integration
+
+Agents (orchestrators, tool-use frameworks, AI dev tools) call:
 
 ```sh
-./mvn-llm <goal> [flags]
+mvn-llm <goal> [flags]
 ```
-where `<goal>` is any Maven phase/goal, e.g. `install`, `test`, `package`, `compile`, `deps`.
+Where `<goal>` is any Maven phase, e.g. `install`, `test`, `package`, `compile`, or `deps`.
 
-#### Common command-line flags
+Recommended flags for LLMs:
+- Use `-o text` for a one-line agent-ready summary (for chat output, dialogue, or intent chaining)
+- Use `-o json` for parseable, rich responses
+- Use `-dep-ancestor` for reasoning about dependency trees ("why does module X depend on Y?")
+- Use `-output-file` to persist outputs for agent planning or state
+
+#### Common flags
 
 | Flag                       | Purpose                                                    |
 |---------------------------|------------------------------------------------------------|
+| `-o text|json`            | Agent-friendly output: summary text or structured JSON     |
+| `-output-file <path>`     | Write JSON/text to file for further LLM consumption        |
+| `-rf <module>`            | Resume from Maven module (LLMs can auto-retry)             |
+| `-dep-ancestor <id>`      | Show ancestors for a dependency (dependency reasoning)      |
+| `-dep-verbose`            | Verbose dependency info (detailed subtrees)                |
 | `-project-root <dir>`     | Project root (default: `.`)                                |
 | `-no-clean`               | Skip running `mvn clean` before building                   |
-| `-rf <module>`            | Resume build from this Maven module                        |
-| `-o text|json`            | Choose output format (text summary or full JSON)           |
-| `-output-file <path>`     | Write JSON output to file                                  |
-| `-dep-filter <expr>`      | (deps only) Filter dependencies with Maven `includes` expr |
-| `-dep-ancestor <id>`      | (deps only) Show ancestors for this `groupId:artifactId`   |
-| `-dep-verbose`            | (deps only) Show verbose dependency information            |
+| `-dep-filter <expr>`      | (deps only) Filter dependencies                            |
 
-### Examples
+### Examples for LLMs
 
-- Run build and get a summary:
+- **Get a one-line summary for intent/correction:**
   ```sh
-  ./mvn-llm install
-  # SUCCESS or concise error summary, module, location, etc.
+  mvn-llm install -o text
+  # SUCCESS - All modules built successfully.
+  # or:
+  # BUILD FAILURE (module: module-a) at src/BadClass.java:42 | cannot find symbol SomeType
   ```
 
-- Parse and pretty-print the full dependency tree:
+- **Output a full, machine-parsable dependency tree:**
   ```sh
-  ./mvn-llm deps -o json
+  mvn-llm deps -o json
   {
     "modules": [
       {
@@ -89,27 +103,30 @@ where `<goal>` is any Maven phase/goal, e.g. `install`, `test`, `package`, `comp
   }
   ```
 
-- Get the ancestors (why?) of a dependency:
+- **Answer the "why" behind a dependency (provenance/reasoning):**
   ```sh
-  ./mvn-llm deps -dep-ancestor junit:junit
+  mvn-llm deps -dep-ancestor junit:junit -o text
   # junit:junit
   #     |
   #     +- ...
   ```
 
-- Summarize a test failure in CI (for LLM agent):
+- **Summarize a test failure for agent correction:**
   ```sh
-  ./mvn-llm test -o text
+  mvn-llm test -o text
   # TEST_FAILURE (module: module-a) at com.example.CalculatorTest.testFail:9 | This test always fails expected:<0> but was:<1>
   ```
 
-### Output Summary
+### Output Formats
 
-- **Text (`-o text`):** A one-line summary for LLMs/agents (`SUCCESS - Tests run: 2, Failures: 0, Errors: 0`, or `COMPILE_ERROR (module: foo) at path/Line | error`)
-- **JSON (`-o json`):** Structured data for automation/analysis, with:
-  - `status` (`SUCCESS`, `BUILD FAILURE`, `TEST_FAILURE`, ...)
+- **Text (`-o text`):** One-line summary for LLM feedback, e.g.:  
+  `SUCCESS - Tests run: 2, Failures: 0, Errors: 0`  
+  `COMPILE_ERROR (module: foo) at SomeClass.java:123 | error message`
+- **JSON (`-o json`):** Machine-readable for planning/reasoning, always structured as:
+  - `status`: build/test result or error type (for intent detection by LLM)
   - `failedModule`, `resumeCommand`, `errors`, `failureLocation`, etc.
-  - For `deps`, a full recursive tree and ancestor list.
+  - For `deps`, provides a recursive dependency tree and ancestor list
+- **Both formats:** Guaranteed stable output for parsing, step-by-step correction, or surgical follow-up intents
 
 ---
 
