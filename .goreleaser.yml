@@ -1,0 +1,47 @@
+version: 2
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: mvn-llm
+    binary: mvn-llm
+    main: ./cmd/mvn-llm
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - 7
+
+
+
+checksum:
+  algorithm: sha256
+
+release:
+  draft: false
+  name_template: '{{ .Tag }}'
+
+brews:
+  - name: mvn-llm
+    repository:
+      owner: w8mr
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_GITHUB_TOKEN }}"
+    commit_author:
+      name: w8mr
+      email: elmar@w8mr.nl
+    directory: Formula
+    description: A robust Maven build CLI for LLMs and developers
+    homepage: https://github.com/w8mr/maven-tool
+    license: MIT
+    caveats: "Run 'mvn-llm --help' to get started."
+

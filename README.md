@@ -1,29 +1,105 @@
-# Maven Tool (Node.js/TypeScript)
+# mvn-llm
 
-A modular CLI and OpenCode plugin for efficient, agent-friendly Maven tasks — build, test (with Surefire XML parsing), install, and dependency tree — with intelligent output summarization for agentic workflows.
+A Robust, Structured Maven Build & Analysis CLI for LLMs and Developers
 
-## Features
-- Supports: build, test (parses Surefire XMLs), install, dependency-tree
-- Explicit multi-module support, no wildcards, agent provides modules
-- Detailed/summary/raw output flags
-- Dual short/long CLI options
-- Provides concise "main" result per intent for agent consumption
-- OpenCode plugin adaptor (see `/plugin/opencode.ts`)
+## Why?
 
-## Usage
+Modern LLM-based agents and many developer tools often struggle to understand, reason about, and automate Maven builds—especially for complex multi-module projects and CI/CD. This tool provides a predictable and parseable interface to Maven that includes:
+- Structured, reliable output for dependency trees, build/test phases, errors, and affected modules
+- Usable by LLM agents, scripts, GitHub Actions, or humans who want clean summaries and actionable details
+- Unified handler for all Maven phases (install, test, compile, package, etc.) and robust dependency/ancestor tracing
+
+## What?
+
+- Wraps Maven with a CLI that:  
+  - Outputs structured machine- and human-friendly summaries for all phases/goals
+  - Understands and tracks module ancestry, dependency trees, and errors precisely  
+  - Detects resume points, build errors, test results, and full ancestry for any dependency or module
+- Works cross-platform in CI and developer shells
+- Maintains up-to-date test fixtures so outputs are trustworthy and regression-proof
+
+## How?
+
+### Install
+
+Just clone this repo and build with Go 1.20+ (uses only stdlib & a few small dependencies):
+
 ```sh
-npx ts-node src/cli.ts --intent=test --modules=module-a,module-b --detail=summary --json
+git clone <your fork>
+cd maven-tool
+make # or go build -o mvn-llm ./cmd/mvn-llm
 ```
 
-## CLI Options
-- `-i, --intent`: build | test | install | dependency-tree
-- `-m, --modules`: Comma-separated list of modules (default: all)
-- `-d, --detail`: summary | raw (default: summary)
-- `-j, --json`: Output JSON result for agent
-- `-h, --help`: Show usage info
+### Usage
 
-## Integration
-See `/plugin/opencode.ts` for OpenCode agent integration sample.
+```sh
+./mvn-llm <goal> [flags]
+```
+where `<goal>` is any Maven phase/goal, e.g. `install`, `test`, `package`, `compile`, `deps`.
 
-## Extensibility
-Add new output processors or intents by implementing new handler files and extending the dispatcher in `src/cli.ts`.
+#### Common command-line flags
+
+| Flag                       | Purpose                                                    |
+|---------------------------|------------------------------------------------------------|
+| `-project-root <dir>`     | Project root (default: `.`)                                |
+| `-no-clean`               | Skip running `mvn clean` before building                   |
+| `-rf <module>`            | Resume build from this Maven module                        |
+| `-o text|json`            | Choose output format (text summary or full JSON)           |
+| `-output-file <path>`     | Write JSON output to file                                  |
+| `-dep-filter <expr>`      | (deps only) Filter dependencies with Maven `includes` expr |
+| `-dep-ancestor <id>`      | (deps only) Show ancestors for this `groupId:artifactId`   |
+| `-dep-verbose`            | (deps only) Show verbose dependency information            |
+
+### Examples
+
+- Run build and get a summary:
+  ```sh
+  ./mvn-llm install
+  # SUCCESS or concise error summary, module, location, etc.
+  ```
+
+- Parse and pretty-print the full dependency tree:
+  ```sh
+  ./mvn-llm deps -o json
+  {
+    "modules": [
+      {
+        "moduleName": "my-app-module-a",
+        "root": {
+          "groupId": "com.example",
+          "artifactId": "module-a",
+          "children": [ ... ]
+        }
+      }, ...
+    ]
+  }
+  ```
+
+- Get the ancestors (why?) of a dependency:
+  ```sh
+  ./mvn-llm deps -dep-ancestor junit:junit
+  # junit:junit
+  #     |
+  #     +- ...
+  ```
+
+- Summarize a test failure in CI (for LLM agent):
+  ```sh
+  ./mvn-llm test -o text
+  # TEST_FAILURE (module: module-a) at com.example.CalculatorTest.testFail:9 | This test always fails expected:<0> but was:<1>
+  ```
+
+### Output Summary
+
+- **Text (`-o text`):** A one-line summary for LLMs/agents (`SUCCESS - Tests run: 2, Failures: 0, Errors: 0`, or `COMPILE_ERROR (module: foo) at path/Line | error`)
+- **JSON (`-o json`):** Structured data for automation/analysis, with:
+  - `status` (`SUCCESS`, `BUILD FAILURE`, `TEST_FAILURE`, ...)
+  - `failedModule`, `resumeCommand`, `errors`, `failureLocation`, etc.
+  - For `deps`, a full recursive tree and ancestor list.
+
+---
+
+## Maintainer notes
+- Add new test fixtures by running real Maven builds in `testdata/` and capturing output for regression testing.
+- To re-enable snapshot artifact tracking, tweak `.gitignore` as needed.
+- Contributions and bug reports welcome!

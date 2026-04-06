@@ -9,5 +9,4 @@
 out/
 
 # Test output
-testdata/*/target/
-
+testdata/**/target/
