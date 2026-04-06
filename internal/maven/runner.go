@@ -9,7 +9,9 @@ import (
 // RunMaven invokes Maven with the given arguments from projectRoot.
 // Returns collected output as a single string, or error.
 // Always adds '-B', '--no-transfer-progress', '-Dstyle.color=never' at the start.
-func RunMaven(ctx context.Context, projectRoot string, args []string, opts MavenOpts) (string, error) {
+var RunMaven = runMavenImpl
+
+func runMavenImpl(ctx context.Context, projectRoot string, args []string, opts MavenOpts) (string, error) {
 	var cmdArgs []string
 
 	if !opts.NoClean {
