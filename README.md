@@ -22,12 +22,26 @@ Modern LLM-based agents and many developer tools often struggle to understand, r
 
 ### Install
 
-Just clone this repo and build with Go 1.20+ (uses only stdlib & a few small dependencies):
+#### Homebrew (Recommended - macOS & Linux)
 
 ```sh
-git clone <your fork>
+brew tap w8mr/homebrew-tap
+brew install mvn-llm
+```
+
+- This will fetch and install the latest release from the Homebrew tap.
+- To upgrade later:
+  ```sh
+  brew upgrade mvn-llm
+  ```
+
+#### Manual Build (Advanced/Other Platforms)
+If you don't use Homebrew or want the latest dev version:
+
+```sh
+git clone https://github.com/w8mr/maven-tool.git
 cd maven-tool
-make # or go build -o mvn-llm ./cmd/mvn-llm
+make      # or: go build -o mvn-llm ./cmd/mvn-llm
 ```
 
 ### Usage
