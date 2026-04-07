@@ -4,17 +4,17 @@ import (
 	"regexp"
 )
 
-// BuildPhaseParser parses the main build phase output blocks.
-type BuildPhaseParser struct{}
+type BuildPhaseParser struct {
+	SubParsers []Parser
+}
 
 var pluginHeaderRegex = regexp.MustCompile(`^\[INFO\] --- [\w\-\.]+:\d+[\w\.]*:[\w\-]+( \([^)]+\))? @ [^ ]+ ---$`)
 var moduleArtifactSeparatorRegex = regexp.MustCompile(`^\[INFO\] [-]+< [^>]+ >[-]+$`)
 
-func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (any, int, bool) {
+func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx >= len(lines) {
 		return nil, 0, false
 	}
-	// Check if current line is a plugin header - do NOT scan forward
 	if !pluginHeaderRegex.MatchString(lines[startIdx]) {
 		return nil, 0, false
 	}
@@ -22,28 +22,26 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (any, int, bool) 
 	end := start + 1
 	for end < len(lines) {
 		if pluginHeaderRegex.MatchString(lines[end]) {
-			break // next plugin phase
+			break
 		}
 		if moduleArtifactSeparatorRegex.MatchString(lines[end]) {
-			break // next module starts; do not include this line
+			break
 		}
 		if lines[end] == "[INFO] ------------------------------------------------------------------------" {
-			break // summary separator
+			break
 		}
 		end++
 	}
-	// Claim any immediate trailing blank [INFO] lines, so registry cannot re-match this plugin header.
 	for end < len(lines) && lines[end] == "[INFO] " {
 		end++
 	}
-	// Determine status by scanning for ERROR, WARNING, INFO lines
 	status := "SUCCESS"
 	for _, l := range lines[start:end] {
 		if len(l) > 0 {
 			if l[0] == '[' {
 				if len(l) > 8 && l[:8] == "[ERROR] " {
 					status = "FAILED"
-					break // error always wins
+					break
 				} else if len(l) > 10 && l[:10] == "[WARNING] " && status != "FAILED" {
 					status = "SUCCESS-WITH-WARNINGS"
 				}
@@ -51,15 +49,12 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (any, int, bool) 
 		}
 	}
 
-	// parse build/plugin header meta fields from the first line
 	header := lines[start]
 	plugin := ""
 	version := ""
 	goal := ""
 	executionId := ""
 	artifactId := ""
-	// Header sample: [INFO] --- compiler:3.15.0:compile (default-compile) @ module-a ---
-	// Regex: ^\[INFO\] --- ([\w\-\.]+):(\d+[\w\.]*):([\w\-]+)( \(([^)]+)\))? @ ([^ ]+) ---$
 	pluginHeaderParseRe := regexp.MustCompile(`^\[INFO\] --- ([\w\-\.]+):(\d+[\w\.]*):([\w\-]+)( \(([^)]+)\))? @ ([^ ]+) ---`)
 	m := pluginHeaderParseRe.FindStringSubmatch(header)
 	if len(m) >= 7 {
@@ -83,9 +78,12 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (any, int, bool) 
 		}
 	}
 
-	return BlockOutput{
+	node := &Node{
+		Name:  plugin,
 		Type:  "build-block",
 		Lines: lines[start:end],
 		Meta:  meta,
-	}, end - startIdx, true
+	}
+
+	return node, end - startIdx, true
 }

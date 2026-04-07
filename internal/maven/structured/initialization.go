@@ -2,43 +2,34 @@ package structured
 
 import "strings"
 
-// InitializationPhaseParser parses initialization-related output blocks.
 type InitializationPhaseParser struct{}
 
-func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (any, int, bool) {
+func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx > 0 {
-		return nil, 0, false // Only matches from the top
+		return nil, 0, false
 	}
 	start := startIdx
 	end := startIdx
 	seenReactorHeader := false
 	for i := start; i < len(lines); i++ {
 		line := lines[i]
-		// Mark when we see the Reactor Build Order
 		if line == "[INFO] Reactor Build Order:" {
 			seenReactorHeader = true
 		}
-		// After we've seen Reactor Build Order, only stop at a real phase boundary
 		if seenReactorHeader {
 			if len(line) > 10 && line[:10] == "[INFO] ---" {
-				break // plugin header
+				break
 			}
 			if len(line) > 30 && line[:30] == "[INFO] ----------------------< " {
-				break // artifact separator (next module)
+				break
 			}
 			if line == "[INFO] ------------------------------------------------------------------------" {
-				break // summary separator
+				break
 			}
 		}
 		end = i + 1
 	}
 	if end > start {
-		block := BlockOutput{
-			Type:  "initialization",
-			Lines: lines[start:end],
-		}
-
-		// Extract modules and packaging from Reactor Build Order if present
 		var modules []map[string]string
 		inReactorOrder := false
 		for i := start; i < end; i++ {
@@ -49,14 +40,12 @@ func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (any, in
 			}
 			if inReactorOrder {
 				if line == "[INFO]" || line == "[INFO] " || len(line) < 12 {
-					continue // skip blank info lines
+					continue
 				}
-				// Match against e.g. '[INFO] module-a       [jar]'
 				s := line[len("[INFO] "):]
 				if len(s) == 0 {
 					continue
 				}
-				// Find last '[' and last ']', everything before is name, in brackets is type
 				lastBracket := -1
 				lastClose := -1
 				for j := len(s) - 1; j >= 0; j-- {
@@ -72,20 +61,25 @@ func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (any, in
 					typ := s[lastBracket+1 : lastClose]
 					name = strings.TrimSpace(name)
 					typ = strings.TrimSpace(typ)
-					// Add to list
 					if name != "" && typ != "" {
 						modules = append(modules, map[string]string{"module": name, "packaging": typ})
 					}
 				} else if lastBracket == -1 && lastClose == -1 && !strings.HasPrefix(s, "-") {
-					// End of reactor order list
 					inReactorOrder = false
 				}
 			}
 		}
+		meta := map[string]any{}
 		if len(modules) > 0 {
-			block.Meta = map[string]any{"modules": modules}
+			meta["modules"] = modules
 		}
-		return block, end - start, true
+		node := &Node{
+			Name:  "initialization",
+			Type:  "initialization",
+			Lines: lines[start:end],
+			Meta:  meta,
+		}
+		return node, end - start, true
 	}
 	return nil, 0, false
 }

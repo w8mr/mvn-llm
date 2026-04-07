@@ -15,36 +15,32 @@ func TestRegistry_ParseBuildAndSummaryPhases(t *testing.T) {
 
 	r := NewDefaultRegistry()
 	parsed := r.ParseOutput(lines)
-	if len(parsed.Phases) < 2 {
-		t.Fatalf("Expected at least 2 phases (modules and summary), got: %d", len(parsed.Phases))
+	if len(parsed.Root.Children) < 2 {
+		t.Fatalf("Expected at least 2 phases (modules and summary), got: %d", len(parsed.Root.Children))
 	}
 
-	// With the hierarchical structure, phases are now organized by module
-	// Find the summary phase
-	var summaryPhase *PhaseOutput
-	for i := range parsed.Phases {
-		if parsed.Phases[i].Name == "summary" {
-			summaryPhase = &parsed.Phases[i]
+	var summaryNode *Node
+	for i := range parsed.Root.Children {
+		if parsed.Root.Children[i].Type == "summary" {
+			summaryNode = &parsed.Root.Children[i]
 			break
 		}
 	}
-	if summaryPhase == nil {
-		t.Errorf("Expected to find a 'summary' phase")
+	if summaryNode == nil {
+		t.Errorf("Expected to find a 'summary' node")
 	} else {
-		if len(summaryPhase.Blocks) == 0 {
-			t.Errorf("Expected at least one block in summary phase, got 0")
+		if len(summaryNode.Lines) == 0 {
+			t.Errorf("Expected at least one line in summary node, got 0")
 		}
 		found := false
-		for _, b := range summaryPhase.Blocks {
-			for _, l := range b.Lines {
-				if strings.Contains(l, "BUILD SUCCESS") {
-					found = true
-					break
-				}
+		for _, l := range summaryNode.Lines {
+			if strings.Contains(l, "BUILD SUCCESS") {
+				found = true
+				break
 			}
 		}
 		if !found {
-			t.Errorf("Expected summary block to contain 'BUILD SUCCESS'")
+			t.Errorf("Expected summary node to contain 'BUILD SUCCESS'")
 		}
 	}
 }

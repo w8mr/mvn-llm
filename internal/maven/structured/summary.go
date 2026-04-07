@@ -5,10 +5,9 @@ import (
 	"strings"
 )
 
-// SummaryPhaseParser parses the build summary output block.
 type SummaryPhaseParser struct{}
 
-func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool) {
+func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx >= len(lines) {
 		return nil, 0, false
 	}
@@ -16,16 +15,14 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool
 	end := len(lines)
 	foundSummaryStart := false
 	for i := startIdx; i < len(lines); i++ {
-		// Look for the first summary separator and 'Reactor Summary for'
 		if !foundSummaryStart && lines[i] == "[INFO] ------------------------------------------------------------------------" {
 			if i+1 < len(lines) && strings.HasPrefix(lines[i+1], "[INFO] Reactor Summary for") {
 				start = i
 				foundSummaryStart = true
-				i++ // skip one line ahead to continue scan
+				i++
 			}
 		}
 		if foundSummaryStart && start != -1 {
-			// Look for ending sequence: BUILD result, Total time, Finished at, final separator
 			var hasBuildStatus, hasTotalTime, hasFinishedAt, hasFinalSep bool
 			for j := i; j < len(lines); j++ {
 				if !hasBuildStatus && (lines[j] == "[INFO] BUILD SUCCESS" || lines[j] == "[INFO] BUILD FAILURE") {
@@ -39,7 +36,7 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool
 				}
 				if hasFinishedAt && strings.HasPrefix(lines[j], "[INFO] --------") {
 					end = j + 1
-					i = j // move i forward
+					i = j
 					hasFinalSep = true
 					break
 				}
@@ -50,18 +47,15 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool
 		}
 	}
 	if start != -1 && end > start {
-		// Extend summary to include a blank or whitespace-only line immediately after the summary if present
 		extendedEnd := end
 		if extendedEnd < len(lines) && strings.TrimSpace(lines[extendedEnd]) == "" {
 			extendedEnd++
 		}
 
-		// --- Structured meta extraction ---
 		meta := map[string]any{}
 		moduleList := []map[string]any{}
 		var overallStatus, totalTime, finishedAt string
 
-		// Narrow the region for module lines
 		summaryStart := -1
 		for i := start; i < extendedEnd; i++ {
 			if strings.HasPrefix(lines[i], "[INFO] Reactor Summary for") {
@@ -69,10 +63,7 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool
 				break
 			}
 		}
-		// The usual format is:
-		// summaryStart: '[INFO] Reactor Summary for ...'
-		// summaryStart+1: blank
-		// summaryStart+2..N: modules, ending at the next separator
+
 		mLinesStart := -1
 		mLinesEnd := -1
 		for i := summaryStart + 2; i < extendedEnd; i++ {
@@ -84,7 +75,6 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool
 				break
 			}
 		}
-		// Defensive: If not found fallbacks
 		if mLinesStart == -1 {
 			mLinesStart = summaryStart + 2
 		}
@@ -96,7 +86,7 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool
 				}
 			}
 		}
-		// Parse module result lines
+
 		if mLinesStart != -1 && mLinesEnd != -1 && mLinesEnd > mLinesStart {
 			modRegex := regexp.MustCompile(`^(.*?) +[. ]+ *(SUCCESS|FAILURE|SKIPPED) *\[ *([^\]]+?) *\]$`)
 			for _, modLine := range lines[mLinesStart:mLinesEnd] {
@@ -114,7 +104,6 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool
 						"time":   time,
 					})
 				} else {
-					// fallback heuristic for odd lines (never lose any info)
 					fields := strings.Fields(ml)
 					name, status, time := "", "", ""
 					if len(fields) >= 3 && strings.HasSuffix(fields[len(fields)-2], "SUCCESS") {
@@ -140,7 +129,7 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool
 				}
 			}
 		}
-		// Overall status, total time, finished at
+
 		for i := extendedEnd - 1; i >= start; i-- {
 			if overallStatus == "" && (strings.Contains(lines[i], "BUILD SUCCESS") || strings.Contains(lines[i], "BUILD FAILURE")) {
 				overallStatus = strings.TrimSpace(strings.TrimPrefix(lines[i], "[INFO] "))
@@ -164,12 +153,14 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (any, int, bool
 		if finishedAt != "" {
 			meta["finishedAt"] = finishedAt
 		}
-		block := BlockOutput{
+
+		node := &Node{
+			Name:  "summary",
 			Type:  "summary",
 			Lines: lines[start:extendedEnd],
 			Meta:  meta,
 		}
-		return block, extendedEnd - start, true
+		return node, extendedEnd - start, true
 	}
 	return nil, 0, false
 }

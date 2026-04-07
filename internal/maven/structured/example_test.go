@@ -16,13 +16,13 @@ func TestRegistry_ParseInitialization(t *testing.T) {
 	r := NewDefaultRegistry()
 	parsed := r.ParseOutput(lines)
 
-	if len(parsed.Phases) == 0 || parsed.Phases[0].Name != "initialization" {
-		t.Errorf("Expected first phase to be 'initialization', got: %+v", parsed.Phases)
+	if len(parsed.Root.Children) == 0 || parsed.Root.Children[0].Type != "initialization" {
+		t.Errorf("Expected first node to be 'initialization', got: %+v", parsed.Root.Children)
 	}
-	if len(parsed.Phases[0].Blocks) != 1 {
-		t.Errorf("Expected one block in initialization phase, got: %d", len(parsed.Phases[0].Blocks))
+	if len(parsed.Root.Children[0].Lines) == 0 {
+		t.Errorf("Expected lines in initialization node, got: %d", len(parsed.Root.Children[0].Lines))
 	}
-	if !strings.Contains(parsed.Phases[0].Blocks[0].Lines[0], "Scanning for projects") {
-		t.Errorf("Expected initialization block to contain 'Scanning for projects', got: %v", parsed.Phases[0].Blocks[0].Lines)
+	if !strings.Contains(parsed.Root.Children[0].Lines[0], "Scanning for projects") {
+		t.Errorf("Expected initialization node to contain 'Scanning for projects', got: %v", parsed.Root.Children[0].Lines)
 	}
 }
