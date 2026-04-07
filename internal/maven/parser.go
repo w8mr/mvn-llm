@@ -87,6 +87,64 @@ type MavenOutput struct {
 	ResumeModule    string
 }
 
+// --- NEW AGENT ERROR SUMMARY HELPER ---
+func (m *MavenOutput) getAgentErrorSummaryLines(maxLines int) []string {
+	type errKey struct {
+		file string
+		line string
+		col  string
+	}
+	fileErrors := make(map[errKey]string)   // for compile errors
+	otherErrors := make(map[string]string)  // catch-all for non-file-specific errors
+	testFailures := make(map[string]string) // for test method failures
+	for _, err := range m.Errors {
+		if match := compileErrRE.FindStringSubmatch(err); match != nil {
+			key := errKey{file: match[1], line: match[2], col: match[3]}
+			msg := match[4]
+			relPath := match[1]
+			if strings.HasPrefix(relPath, m.FailureLocation) {
+				// already relative
+			} else if i := strings.Index(relPath, "/src/"); i >= 0 {
+				relPath = relPath[i+1:]
+			}
+			fileErrors[key] = relPath + ":" + match[2] + ":" + match[3] + ": " + msg
+			continue
+		}
+		if match := testLocRE.FindStringSubmatch(err); match != nil {
+			key := match[1] + "." + match[2] + ":" + match[3]
+			testFailures[key] = key + ": " + match[4]
+			continue
+		}
+		msg := err
+		if len(msg) > 120 {
+			msg = msg[:120] + "..."
+		}
+		otherErrors[msg] = msg
+	}
+	lines := []string{}
+	for _, v := range fileErrors {
+		lines = append(lines, v)
+	}
+	for _, v := range testFailures {
+		lines = append(lines, v)
+	}
+	if len(lines) == 0 {
+		for _, v := range otherErrors {
+			lines = append(lines, v)
+		}
+	}
+	if len(lines) > maxLines {
+		lines = lines[:maxLines]
+		lines = append(lines,
+			fmt.Sprintf("...and %d more errors (total %d)", len(fileErrors)+len(testFailures)+len(otherErrors)-maxLines, len(fileErrors)+len(testFailures)+len(otherErrors)),
+		)
+	}
+	return lines
+}
+
+// === BEGIN RESTORED CANONICAL LOGIC ===
+// ([31mFull canonical functions follow[0m)
+
 // ParseMavenOutput parses Maven output and extracts structured information
 func ParseMavenOutput(output string, projectRoot string) MavenOutput {
 	result := MavenOutput{
@@ -382,6 +440,16 @@ func (m *MavenOutput) ToJSON() string {
 
 	if agentSummary != "" {
 		parts = append(parts, fmt.Sprintf(`"agentSummary": "%s"`, agentSummary))
+	}
+
+	// Agent error summary lines for LLMs and downstream agents
+	agentErrorLines := m.getAgentErrorSummaryLines(6)
+	if len(agentErrorLines) > 0 {
+		lineReprs := make([]string, len(agentErrorLines))
+		for i, l := range agentErrorLines {
+			lineReprs[i] = fmt.Sprintf(`"%s"`, l)
+		}
+		parts = append(parts, fmt.Sprintf(`"agentErrorSummaryLines": [%s]`, strings.Join(lineReprs, ", ")))
 	}
 
 	// Only include resumeCommand for non-pre-build failures

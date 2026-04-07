@@ -340,6 +340,40 @@ func TestParseDependencyTree_NestedAncestors(t *testing.T) {
 	}
 }
 
+// TestAgentErrorSummaryLines_MultiLineOutput ensures the agent error summary lines field is exposed and correct.
+func TestAgentErrorSummaryLines_MultiLineOutput(t *testing.T) {
+	// Simulate Maven output with multiple compile, test, and generic errors.
+	output := `
+[ERROR] /foo/src/main/java/com/example/App.java:[11,20] cannot find symbol
+[ERROR] /foo/src/main/java/com/example/App.java:[15,8] ';' expected
+[ERROR] com.example.AppTest.testAddition:29 expected:<4> but was:<5>
+[ERROR] Some other non-file-specific build error occurred
+[ERROR] [FATAL] Non-parseable POM /foo/bar/pom.xml: end tag name </projct> must match start tag <project>
+[ERROR] [INFO] BUILD FAILURE
+`
+	result := ParseMavenOutput(output, "/foo")
+	json := result.ToJSON()
+
+	if !strings.Contains(json, "agentErrorSummaryLines") {
+		t.Errorf("Expected agentErrorSummaryLines in output, got: %s", json)
+	}
+
+	// Each sample error should be present in the summary lines
+	expects := []string{"cannot find symbol", "AppTest.testAddition:29 expected:<4>", ";' expected", "Some other non-file-specific", "end tag name"}
+	for _, exp := range expects {
+		if !strings.Contains(json, exp) {
+			t.Errorf("Missing expected error line excerpt: %q in JSON: %s", exp, json)
+		}
+	}
+
+	// Should be max 6 lines, or have an ellipsis if there are more than 6 errors
+	agentLinesCount := strings.Count(json, "agentErrorSummaryLines")
+	if agentLinesCount != 1 {
+		t.Errorf("Expected only one agentErrorSummaryLines section, got %d", agentLinesCount)
+	}
+}
+
+
 func readTestFile(t *testing.T, filename string) string {
 	t.Helper()
 	path := filepath.Join("testdata", filename)
