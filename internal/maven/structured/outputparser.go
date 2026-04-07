@@ -1,5 +1,11 @@
 package structured
 
+import (
+	"fmt"
+	"os"
+	"reflect"
+)
+
 type OutputParser struct {
 	Parsers []Parser
 }
@@ -57,6 +63,90 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 }
 
 func (p *OutputParser) ParseOutput(lines []string) *StructuredOutput {
-	root, _, _ := p.Parse(lines, 0)
+	return p.ParseOutputStrict(lines, false)
+}
+
+func (p *OutputParser) ParseOutputStrict(lines []string, strict bool) *StructuredOutput {
+	root, _, ok := p.Parse(lines, 0)
+
+	if strict && ok {
+		collected := collectAllLines(root)
+		missing := findMissingLines(lines, collected)
+		extra := findExtraLines(lines, collected)
+
+		if len(missing) > 0 || len(extra) > 0 {
+			fmt.Fprintf(os.Stderr, "ERROR: Parsing may have lost lines.\n")
+			fmt.Fprintf(os.Stderr, "  Original lines: %d\n", len(lines))
+			fmt.Fprintf(os.Stderr, "  Parsed lines: %d\n", len(collected))
+
+			if len(missing) > 0 {
+				fmt.Fprintf(os.Stderr, "  Missing: %d lines\n", len(missing))
+				for i, line := range missing {
+					if i >= 3 {
+						break
+					}
+					fmt.Fprintf(os.Stderr, "    %d: %s\n", i+1, line)
+				}
+			}
+
+			if len(extra) > 0 {
+				fmt.Fprintf(os.Stderr, "  Extra (unparsed): %d lines\n", len(extra))
+				for i, line := range extra {
+					if i >= 3 {
+						break
+					}
+					fmt.Fprintf(os.Stderr, "    %d: %s\n", i+1, line)
+				}
+			}
+
+			fmt.Fprintf(os.Stderr, "\nPlease report this issue at: https://github.com/anomalyco/maven-tool/issues\n")
+			fmt.Fprintf(os.Stderr, "To disable strict mode: mvn-llm --no-strict ...\n")
+			os.Exit(1)
+		}
+	}
+
 	return &StructuredOutput{Root: *root}
+}
+
+func collectAllLines(node *Node) []string {
+	var lines []string
+	lines = append(lines, node.Lines...)
+	for _, child := range node.Children {
+		lines = append(lines, collectAllLines(&child)...)
+	}
+	return lines
+}
+
+func findMissingLines(original, parsed []string) []string {
+	parsedSet := make(map[string]bool)
+	for _, line := range parsed {
+		parsedSet[line] = true
+	}
+
+	var missing []string
+	for _, line := range original {
+		if !parsedSet[line] {
+			missing = append(missing, line)
+		}
+	}
+	return missing
+}
+
+func findExtraLines(original, parsed []string) []string {
+	originalSet := make(map[string]bool)
+	for _, line := range original {
+		originalSet[line] = true
+	}
+
+	var extra []string
+	for _, line := range parsed {
+		if !originalSet[line] {
+			extra = append(extra, line)
+		}
+	}
+	return extra
+}
+
+func LinesMatch(original, parsed []string) bool {
+	return reflect.DeepEqual(original, parsed)
 }

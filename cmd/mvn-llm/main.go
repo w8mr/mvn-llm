@@ -32,6 +32,7 @@ func main() {
 	depFilter := flag.String("dep-filter", "", "Filter dependencies (e.g., 'junit')")
 	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
 	depVerbose := flag.Bool("dep-verbose", false, "Show verbose dependency tree")
+	noStrict := flag.Bool("no-strict", false, "Disable strict parsing")
 	flag.Parse()
 
 	args := flag.Args()
@@ -67,7 +68,7 @@ func main() {
 	if *output == "structured-json" {
 		if outStr, ok := mvnOut.(string); ok {
 			parser := structured.NewOutputParser()
-			structuredOut := parser.ParseOutput(splitLines(outStr))
+			structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict)
 			jsonBytes, err := marshalStructuredJSON(structuredOut)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to encode structured JSON: %v\n", err)
