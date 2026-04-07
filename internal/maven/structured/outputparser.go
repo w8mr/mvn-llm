@@ -50,6 +50,16 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 		}
 
 		if !matched {
+			// Check if previous node was also unparsable - combine if adjacent
+			if len(root.Children) > 0 {
+				lastIdx := len(root.Children) - 1
+				if root.Children[lastIdx].Type == "unparsable" {
+					root.Children[lastIdx].Lines = append(root.Children[lastIdx].Lines, lines[idx])
+					idx++
+					continue
+				}
+			}
+			// New unparsable node
 			root.Children = append(root.Children, Node{
 				Name:  "unparsable",
 				Type:  "unparsable",
