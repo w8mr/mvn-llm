@@ -8,8 +8,9 @@ import (
 
 // HandleMavenGoal runs any Maven goal and returns the output
 // It automatically parses the output based on the goal type
-func HandleMavenGoal(ctx context.Context, projectRoot string, goal string, opts maven.MavenOpts) (interface{}, error) {
-	return HandleMavenPhaseIntent(ctx, projectRoot, goal, opts)
+// parseMode: "structured-json" only
+func HandleMavenGoal(ctx context.Context, projectRoot string, goal string, opts maven.MavenOpts, parseMode ...string) (interface{}, error) {
+	return HandleMavenPhaseIntent(ctx, projectRoot, goal, opts, "structured-json")
 }
 
 func isBuildGoal(goal string) bool {
