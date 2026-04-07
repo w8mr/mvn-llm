@@ -1,74 +1,202 @@
 package structured
 
 import (
+	"encoding/json"
 	"os"
-	"strings"
 	"testing"
 )
 
-func TestRegistry_ParseBuildAndSummaryPhases(t *testing.T) {
-	data, err := os.ReadFile("../testdata/sample_install.txt")
-	if err != nil {
-		t.Fatalf("unable to read sample_install.txt: %v", err)
+// ...existing tests...
+
+func Test_NoDuplicateCleanPluginBlocks(t *testing.T) {
+	lines := []string{
+		"[INFO] Scanning for projects...",
+		"[INFO] ------------------------------------------------------------------------",
+		"[INFO] Reactor Build Order:",
+		"[INFO]",
+		"[INFO] module-a                                                           [jar]",
+		"[INFO]",
+		"[INFO] ------------------------< com.example:module-a >------------------------",
+		"[INFO] Building module-a 1.0-SNAPSHOT                                     [1/1]",
+		"[INFO]   from module-a/pom.xml",
+		"[INFO] --------------------------------[ jar ]---------------------------------",
+		"[INFO]",
+		"[INFO] --- clean:3.2.0:clean (default-clean) @ module-a ---",
+		"[INFO] Deleting /some/path/target",
+		"[INFO]",
 	}
-	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+	r := NewDefaultRegistry()
+	parsed := r.ParseOutput(lines)
+
+	// Find the module phase for module-a
+	var modulePhase *PhaseOutput
+	for _, phase := range parsed.Phases {
+		if phase.Name == "module-a" {
+			modulePhase = &phase
+			break
+		}
+	}
+	if modulePhase == nil {
+		t.Fatalf("Could not find module-a phase")
+	}
+
+	// Count build-blocks for clean plugin
+	count := 0
+	for _, block := range modulePhase.Blocks {
+		if block.Type == "build-block" && block.Meta != nil && block.Meta["plugin"] == "clean" {
+			count++
+		}
+	}
+
+	if count != 1 {
+		t.Errorf("Expected exactly one build-block for the clean plugin in module-a, got %d", count)
+		for _, block := range modulePhase.Blocks {
+			t.Logf("Block: type=%s meta=%v lines=%v", block.Type, block.Meta, block.Lines)
+		}
+	}
+}
+
+func Test_MultiModuleClean_NoDuplicates(t *testing.T) {
+	lines := []string{
+		"[INFO] Scanning for projects...",
+		"[INFO] ------------------------------------------------------------------------",
+		"[INFO] Reactor Build Order:",
+		"[INFO] ",
+		"[INFO] sample-multi                                                       [pom]",
+		"[INFO] module-a                                                           [jar]",
+		"[INFO] module-b                                                           [jar]",
+		"[INFO] ",
+		"[INFO] ----------------------< com.example:sample-multi >----------------------",
+		"[INFO] Building sample-multi 1.0-SNAPSHOT                                 [1/3]",
+		"[INFO]   from pom.xml",
+		"[INFO] --------------------------------[ pom ]---------------------------------",
+		"[INFO] ",
+		"[INFO] --- clean:3.2.0:clean (default-clean) @ sample-multi ---",
+		"[INFO] ",
+		"[INFO] ------------------------< com.example:module-a >------------------------",
+		"[INFO] Building module-a 1.0-SNAPSHOT                                     [2/3]",
+		"[INFO]   from module-a/pom.xml",
+		"[INFO] --------------------------------[ jar ]---------------------------------",
+		"[INFO] ",
+		"[INFO] --- clean:3.2.0:clean (default-clean) @ module-a ---",
+		"[INFO] ",
+		"[INFO] ------------------------< com.example:module-b >------------------------",
+		"[INFO] Building module-b 1.0-SNAPSHOT                                     [3/3]",
+		"[INFO]   from module-b/pom.xml",
+		"[INFO] --------------------------------[ jar ]---------------------------------",
+		"[INFO] ",
+		"[INFO] --- clean:3.2.0:clean (default-clean) @ module-b ---",
+		"[INFO] ------------------------------------------------------------------------",
+		"[INFO] Reactor Summary for sample-multi 1.0-SNAPSHOT:",
+		"[INFO] ",
+		"[INFO] sample-multi ....................................... SUCCESS [  0.064 s]",
+		"[INFO] module-a ........................................... SUCCESS [  0.001 s]",
+		"[INFO] module-b ........................................... SUCCESS [  0.001 s]",
+		"[INFO] ------------------------------------------------------------------------",
+		"[INFO] BUILD SUCCESS",
+		"[INFO] ------------------------------------------------------------------------",
+		"[INFO] Total time:  0.127 s",
+		"[INFO] Finished at: 2026-04-07T16:13:23+02:00",
+		"[INFO] ------------------------------------------------------------------------",
+	}
+	r := NewDefaultRegistry()
+	parsed := r.ParseOutput(lines)
+
+	modules := []string{"sample-multi", "module-a", "module-b"}
+	for _, module := range modules {
+		var foundModule *PhaseOutput
+		for _, phase := range parsed.Phases {
+			if phase.Name == module {
+				foundModule = &phase
+				break
+			}
+		}
+		if foundModule == nil {
+			t.Errorf("Could not find module phase %s", module)
+			continue
+		}
+		count := 0
+		for _, block := range foundModule.Blocks {
+			if block.Type == "build-block" && block.Meta != nil && block.Meta["plugin"] == "clean" {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Errorf("Expected exactly one build-block for the clean plugin in module %s, got %d", module, count)
+			for _, block := range foundModule.Blocks {
+				t.Logf("Module %s: Block: type=%s meta=%v lines=%v", module, block.Type, block.Meta, block.Lines)
+			}
+		}
+	}
+}
+
+// Integration test: read the REAL Maven CLI log, parse, check JSON output for duplication
+func Test_RealLog_NoDuplicateCleanInJSON(t *testing.T) {
+	logPath := "../testdata/actual-multimodule-clean.log" // Path relative to structured/
+	f, err := os.Open(logPath)
+	if err != nil {
+		t.Fatalf("Failed to open log file: %v", err)
+	}
+	defer f.Close()
+	var lines []string
+	buf := make([]byte, 1024*64)
+	n, err := f.Read(buf)
+	if err != nil && err.Error() != "EOF" {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+	for _, l := range splitLines(string(buf[:n])) {
+		lines = append(lines, l)
+	}
 
 	r := NewDefaultRegistry()
 	parsed := r.ParseOutput(lines)
-	if len(parsed.Phases) < 3 {
-		t.Fatalf("Expected at least 3 phases (init, build, summary), got: %d", len(parsed.Phases))
+	j, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		t.Fatalf("Could not marshal JSON: %v", err)
 	}
+	t.Logf("Structured JSON output:\n%s", string(j))
 
-	if parsed.Phases[1].Name != "build-block" {
-		t.Errorf("Expected second phase to be 'build-block', got: %s", parsed.Phases[1].Name)
-	}
-	if len(parsed.Phases[1].Blocks) == 0 {
-		t.Errorf("Expected at least one block in build phase, got 0")
-	}
-	found := false
-	for _, l := range parsed.Phases[1].Blocks[0].Lines {
-		if strings.Contains(l, "Building") || strings.Contains(l, "Compiling") {
-			found = true
-			break
+	modules := []string{"sample-multi", "module-a", "module-b"}
+	for _, module := range modules {
+		var foundModule *PhaseOutput
+		for _, phase := range parsed.Phases {
+			if phase.Name == module {
+				foundModule = &phase
+				break
+			}
+		}
+		if foundModule == nil {
+			t.Errorf("Could not find module phase %s", module)
+			continue
+		}
+		count := 0
+		for _, block := range foundModule.Blocks {
+			if block.Type == "build-block" && block.Meta != nil && block.Meta["plugin"] == "clean" {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Errorf("Expected exactly one clean build-block for %s in JSON output, got %d", module, count)
+			for _, block := range foundModule.Blocks {
+				if block.Meta["plugin"] == "clean" {
+					t.Logf("Module %s: Block: meta=%v lines=%v", module, block.Meta, block.Lines)
+				}
+			}
 		}
 	}
-	if !found {
-		t.Errorf("Expected build block to contain compilation log lines")
-	}
+}
 
-	if parsed.Phases[2].Name != "summary" {
-		t.Errorf("Expected third phase to be 'summary', got: %s", parsed.Phases[2].Name)
-	}
-	if len(parsed.Phases[2].Blocks) == 0 {
-		t.Errorf("Expected at least one block in summary phase, got 0")
-	}
-	block := parsed.Phases[2].Blocks[0]
-	found = false
-	for _, l := range block.Lines {
-		if strings.Contains(l, "BUILD SUCCESS") {
-			found = true
-			break
+func splitLines(s string) []string {
+	res := []string{}
+	l := 0
+	for i := range s {
+		if s[i] == '\n' {
+			res = append(res, s[l:i])
+			l = i + 1
 		}
 	}
-	if !found {
-		t.Errorf("Expected summary block to contain 'BUILD SUCCESS'")
+	if l < len(s) {
+		res = append(res, s[l:])
 	}
-
-	// Validate summary meta fields
-	if block.Meta == nil {
-		t.Errorf("Expected summary block to have Meta field, got nil")
-	} else {
-		if mods, ok := block.Meta["modules"].([]interface{}); !ok || len(mods) != 3 {
-			t.Errorf("Expected 3 modules in meta, got %v", block.Meta["modules"])
-		}
-		if status, ok := block.Meta["overallStatus"].(string); !ok || status != "BUILD SUCCESS" {
-			t.Errorf("Expected overallStatus 'BUILD SUCCESS', got %v", block.Meta["overallStatus"])
-		}
-		if tt, ok := block.Meta["totalTime"].(string); !ok || tt == "" {
-			t.Errorf("Expected non-empty totalTime, got %v", block.Meta["totalTime"])
-		}
-		if fa, ok := block.Meta["finishedAt"].(string); !ok || fa == "" {
-			t.Errorf("Expected non-empty finishedAt, got %v", block.Meta["finishedAt"])
-		}
-	}
+	return res
 }

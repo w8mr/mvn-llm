@@ -14,7 +14,15 @@ var RunMaven = runMavenImpl
 func runMavenImpl(ctx context.Context, projectRoot string, args []string, opts MavenOpts) (string, error) {
 	var cmdArgs []string
 
-	if !opts.NoClean {
+	// Only prepend clean if not already in args and NoClean is false
+	hasClean := false
+	for _, arg := range args {
+		if arg == "clean" {
+			hasClean = true
+			break
+		}
+	}
+	if !opts.NoClean && !hasClean {
 		cmdArgs = append(cmdArgs, "clean")
 	}
 
