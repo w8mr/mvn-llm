@@ -66,8 +66,8 @@ func main() {
 	// If mvnOut is a string (raw Maven output, best for structured parser)
 	if *output == "structured-json" {
 		if outStr, ok := mvnOut.(string); ok {
-			reg := structured.NewDefaultRegistry()
-			structuredOut := reg.ParseOutput(splitLines(outStr))
+			parser := structured.NewOutputParser()
+			structuredOut := parser.ParseOutput(splitLines(outStr))
 			jsonBytes, err := marshalStructuredJSON(structuredOut)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to encode structured JSON: %v\n", err)

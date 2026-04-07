@@ -13,7 +13,7 @@ func TestRegistry_ParseBuildAndSummaryPhases(t *testing.T) {
 	}
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	r := NewDefaultRegistry()
+	r := NewOutputParser()
 	parsed := r.ParseOutput(lines)
 	if len(parsed.Root.Children) < 2 {
 		t.Fatalf("Expected at least 2 phases (modules and summary), got: %d", len(parsed.Root.Children))

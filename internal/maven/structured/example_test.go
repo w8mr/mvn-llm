@@ -13,7 +13,7 @@ func TestRegistry_ParseInitialization(t *testing.T) {
 	}
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	r := NewDefaultRegistry()
+	r := NewOutputParser()
 	parsed := r.ParseOutput(lines)
 
 	if len(parsed.Root.Children) == 0 || parsed.Root.Children[0].Type != "initialization" {
