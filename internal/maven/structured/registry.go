@@ -29,13 +29,8 @@ func (r *Registry) RegisterPhase(p Parser) {
 func (r *Registry) ParseOutput(lines []string) *StructuredOutput {
 	output := &StructuredOutput{}
 	idx := 0
-	claimed := make([]bool, len(lines))
 	var currentModule *PhaseOutput = nil
 	for idx < len(lines) {
-		if claimed[idx] {
-			idx++
-			continue
-		}
 		matched := false
 		for _, phase := range r.Phases {
 			block, consumed, ok := phase.Parse(lines, idx)
@@ -72,9 +67,6 @@ func (r *Registry) ParseOutput(lines []string) *StructuredOutput {
 					default:
 						output.Phases = append(output.Phases, PhaseOutput{Name: blockOut.Type, Blocks: []BlockOutput{blockOut}})
 					}
-				}
-				for i := idx; i < idx+consumed && i < len(claimed); i++ {
-					claimed[i] = true
 				}
 				idx += consumed
 				matched = true

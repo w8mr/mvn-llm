@@ -72,29 +72,20 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (any, int, bool) 
 		artifactId = m[6]
 	}
 
-	meta := map[string]any{
-		"status": status,
-	}
+	meta := map[string]any{"status": status}
 	if plugin != "" {
 		meta["plugin"] = plugin
-	}
-	if version != "" {
 		meta["version"] = version
-	}
-	if goal != "" {
 		meta["goal"] = goal
-	}
-	if executionId != "" {
-		meta["executionId"] = executionId
-	}
-	if artifactId != "" {
 		meta["artifactId"] = artifactId
+		if executionId != "" {
+			meta["executionId"] = executionId
+		}
 	}
 
-	block := BlockOutput{
+	return BlockOutput{
 		Type:  "build-block",
 		Lines: lines[start:end],
 		Meta:  meta,
-	}
-	return block, end - startIdx, true
+	}, end - startIdx, true
 }
