@@ -8,6 +8,12 @@ func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (*Node, 
 	if startIdx > 0 {
 		return nil, 0, false
 	}
+
+	// Must start with [INFO] to be valid initialization line
+	if len(lines) == 0 || !strings.HasPrefix(lines[0], "[INFO]") {
+		return nil, 0, false
+	}
+
 	start := startIdx
 	end := startIdx
 	seenReactorHeader := false
@@ -17,13 +23,19 @@ func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (*Node, 
 			seenReactorHeader = true
 		}
 		if seenReactorHeader {
+			// Stop at next phase boundary
 			if len(line) > 10 && line[:10] == "[INFO] ---" {
 				break
 			}
-			if len(line) > 30 && line[:30] == "[INFO] ----------------------< " {
+			if len(line) > 30 && (strings.HasPrefix(line, "[INFO] ----------------------< ") || strings.HasPrefix(line, "[INFO] ------------------------< ")) {
 				break
 			}
 			if line == "[INFO] ------------------------------------------------------------------------" {
+				break
+			}
+			// If line is not a valid [INFO] reactor line, stop here
+			// This handles unparsable lines after the reactor section
+			if !strings.HasPrefix(line, "[INFO]") {
 				break
 			}
 		}

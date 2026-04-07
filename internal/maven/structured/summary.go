@@ -11,6 +11,9 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bo
 	if startIdx >= len(lines) {
 		return nil, 0, false
 	}
+	if lines[startIdx] != "[INFO] ------------------------------------------------------------------------" {
+		return nil, 0, false
+	}
 	start := -1
 	end := len(lines)
 	foundSummaryStart := false
@@ -21,6 +24,10 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bo
 				foundSummaryStart = true
 				i++
 			}
+			continue
+		}
+		if !foundSummaryStart && startIdx > 0 && i == startIdx {
+			continue
 		}
 		if foundSummaryStart && start != -1 {
 			var hasBuildStatus, hasTotalTime, hasFinishedAt, hasFinalSep bool

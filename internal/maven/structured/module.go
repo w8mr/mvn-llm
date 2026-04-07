@@ -13,7 +13,9 @@ func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, boo
 	if startIdx >= len(lines) {
 		return nil, 0, false
 	}
-	if !isModuleHeader(lines[startIdx]) {
+	line := lines[startIdx]
+	isMH := isModuleHeader(line)
+	if !isMH {
 		return nil, 0, false
 	}
 

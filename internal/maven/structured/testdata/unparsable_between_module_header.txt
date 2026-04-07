@@ -1,0 +1,26 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] module-a                                                       [jar]
+[INFO] 
+[INFO] ------------------------< com.example:module-a >------------------------
+RANDOM UNPARSABLE LINE ONE
+RANDOM UNPARSABLE LINE TWO
+[INFO] ------------------------< com.example:module-a >------------------------
+[INFO] Building module-a 1.0-SNAPSHOT                                     [1/1]
+[INFO]   from module-a/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ module-a ---
+[INFO] Deleting target
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for module-a 1.0-SNAPSHOT:
+[INFO] 
+[INFO] module-a ....................................... SUCCESS [  0.001 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.001 s
+[INFO] Finished at: 2026-04-07T00:00:00+00:00
+[INFO] ------------------------------------------------------------------------

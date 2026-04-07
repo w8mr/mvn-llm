@@ -289,26 +289,134 @@ func TestParse_SampleCircularDep(t *testing.T) {
 	}
 }
 
-func TestParse_SampleDependencyTree(t *testing.T) {
-	parsed := parseTestFile("sample_dependency_tree.txt")
+func TestParse_UnparsableLinesCombined(t *testing.T) {
+	// Read test data file with unparsable lines
+	data, err := os.ReadFile("testdata/unparsable_lines.txt")
+	if err != nil {
+		t.Fatalf("unable to read test data: %v", err)
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	root := &parsed.Root
-	if root.Name != "maven-build" {
-		t.Errorf("Expected root name 'maven-build', got '%s'", root.Name)
+	// Parse the lines
+	p := NewOutputParser()
+	result, consumed, ok := p.Parse(lines, 0)
+
+	t.Logf("Parse result: ok=%v consumed=%d", ok, consumed)
+	if result != nil {
+		t.Logf("Root children: %d", len(result.Children))
+		for i, c := range result.Children {
+			t.Logf("  Child %d: type=%s name=%s lines=%d", i, c.Type, c.Name, len(c.Lines))
+		}
+	}
+
+	if !ok {
+		t.Error("Parse should succeed")
+		return
+	}
+
+	// Should consume all lines
+	if consumed != len(lines) {
+		t.Errorf("Expected to consume %d lines, got %d", len(lines), consumed)
+	}
+
+	// Verify combining: consecutive unparsable lines should be ONE node
+	unparsableNodeCount := 0
+	var totalUnparsableLines int
+	for _, child := range result.Children {
+		if child.Type == "unparsable" {
+			unparsableNodeCount++
+			totalUnparsableLines += len(child.Lines)
+			t.Logf("Unparsable node with %d lines: %v", len(child.Lines), child.Lines)
+		}
+	}
+
+	// Key assertion: consecutive unparsable lines should be combined into ONE node
+	if unparsableNodeCount != 1 {
+		t.Errorf("Expected 1 unparsable node (consecutive lines combined), got %d", unparsableNodeCount)
+	}
+
+	// All lines should be in that single node
+	if totalUnparsableLines != 3 {
+		t.Errorf("Expected 3 lines in unparsable node, got %d", totalUnparsableLines)
 	}
 }
 
-func TestParse_UnparsableLinesCombined(t *testing.T) {
-	// Test combining works - just verify behavior is correct for edge cases
-	// The actual combining happens in outputparser.go Parse()
-	// This test verifies the function exists and handles cases
+func TestParse_UnparsableBetweenInitializationAndModule(t *testing.T) {
+	data, err := os.ReadFile("testdata/unparsable_in_middle.txt")
+	if err != nil {
+		t.Fatalf("unable to read test data: %v", err)
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	// Simple smoke test - if this compiles and runs, the code works
-	lines := []string{}
 	parsed := NewOutputParser().ParseOutput(lines)
 
-	// Just verify no panic
-	if parsed == nil {
-		t.Error("Expected parsed output")
+	t.Logf("Root children: %d", len(parsed.Root.Children))
+	for i, c := range parsed.Root.Children {
+		t.Logf("  Child %d: type=%s name=%s lines=%d", i, c.Type, c.Name, len(c.Lines))
+	}
+
+	// Should have: initialization (6), unparsable (3 lines), module, summary = 4 children
+	if len(parsed.Root.Children) != 4 {
+		t.Errorf("Expected 4 children (init + unparsable + module + summary), got %d", len(parsed.Root.Children))
+	}
+
+	// Verify unparsable node exists and has 2 lines (the 2 random lines)
+	unparsableNode := findChildByType(parsed.Root.Children, "unparsable")
+	if unparsableNode == nil {
+		t.Error("Expected unparsable node")
+	} else if len(unparsableNode.Lines) != 2 {
+		t.Errorf("Expected unparsable with 2 lines, got %d", len(unparsableNode.Lines))
+	}
+
+	initNode := findChildByType(parsed.Root.Children, "initialization")
+	if initNode == nil {
+		t.Error("Expected initialization node")
+	}
+
+	moduleNode := findChildByType(parsed.Root.Children, "module")
+	if moduleNode == nil {
+		t.Error("Expected module node")
+	}
+
+	summaryNode := findChildByType(parsed.Root.Children, "summary")
+	if summaryNode == nil {
+		t.Error("Expected summary node")
+	}
+}
+
+func TestParse_UnparsableBetweenModuleHeaderLines(t *testing.T) {
+	data, err := os.ReadFile("testdata/unparsable_between_module_header.txt")
+	if err != nil {
+		t.Fatalf("unable to read test data: %v", err)
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+
+	parsed := NewOutputParser().ParseOutput(lines)
+
+	// Should have: initialization, unparsable, module, summary = 4 children
+	if len(parsed.Root.Children) != 4 {
+		t.Errorf("Expected 4 children (init + unparsable + module + summary), got %d", len(parsed.Root.Children))
+	}
+
+	initNode := findChildByType(parsed.Root.Children, "initialization")
+	if initNode == nil {
+		t.Error("Expected initialization node")
+	}
+
+	unparsableNode := findChildByType(parsed.Root.Children, "unparsable")
+	if unparsableNode == nil {
+		t.Error("Expected unparsable node")
+	} else if len(unparsableNode.Lines) != 3 {
+		t.Errorf("Expected unparsable with 3 lines (module header + 2 random), got %d", len(unparsableNode.Lines))
+	}
+
+	moduleNode := findChildByType(parsed.Root.Children, "module")
+	if moduleNode == nil {
+		t.Error("Expected module node")
+	}
+
+	summaryNode := findChildByType(parsed.Root.Children, "summary")
+	if summaryNode == nil {
+		t.Error("Expected summary node")
 	}
 }

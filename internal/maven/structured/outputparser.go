@@ -24,6 +24,36 @@ func NewOutputParser() *OutputParser {
 	}
 }
 
+func (p *OutputParser) canAnyParserMatch(lines []string, idx int) bool {
+	for _, parser := range p.Parsers {
+		if p.canParserMatch(parser, lines, idx) {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *OutputParser) canParserMatch(parser Parser, lines []string, idx int) bool {
+	if _, _, ok := parser.Parse(lines, idx); ok {
+		return true
+	}
+	if mp, ok := parser.(*ModulePhaseParser); ok {
+		for _, sub := range mp.SubParsers {
+			if p.canParserMatch(sub, lines, idx) {
+				return true
+			}
+		}
+	}
+	if bp, ok := parser.(*BuildPhaseParser); ok {
+		for _, sub := range bp.SubParsers {
+			if p.canParserMatch(sub, lines, idx) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx != 0 {
 		return nil, 0, false
@@ -50,22 +80,31 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 		}
 
 		if !matched {
-			// Check if previous node was also unparsable - combine if adjacent
-			if len(root.Children) > 0 {
-				lastIdx := len(root.Children) - 1
-				if root.Children[lastIdx].Type == "unparsable" {
-					root.Children[lastIdx].Lines = append(root.Children[lastIdx].Lines, lines[idx])
-					idx++
-					continue
+			// Before adding to unparsable, check if any parser CAN match at current position
+			// If a parser can match, skip creating unparsable - it will match on next iteration
+			canMatch := p.canAnyParserMatch(lines, idx)
+
+			if !canMatch {
+				// Check if previous node was also unparsable - combine if adjacent
+				if len(root.Children) > 0 {
+					lastIdx := len(root.Children) - 1
+					if root.Children[lastIdx].Type == "unparsable" {
+						root.Children[lastIdx].Lines = append(root.Children[lastIdx].Lines, lines[idx])
+						idx++
+						continue
+					}
 				}
+				// New unparsable node
+				root.Children = append(root.Children, Node{
+					Name:  "unparsable",
+					Type:  "unparsable",
+					Lines: []string{lines[idx]},
+				})
+				idx++
+			} else {
+				// A parser can match here - skip this line, let parser handle it
+				idx++
 			}
-			// New unparsable node
-			root.Children = append(root.Children, Node{
-				Name:  "unparsable",
-				Type:  "unparsable",
-				Lines: []string{lines[idx]},
-			})
-			idx++
 		}
 	}
 
