@@ -42,8 +42,9 @@ func TestRegistry_ParseBuildAndSummaryPhases(t *testing.T) {
 	if len(parsed.Phases[2].Blocks) == 0 {
 		t.Errorf("Expected at least one block in summary phase, got 0")
 	}
+	block := parsed.Phases[2].Blocks[0]
 	found = false
-	for _, l := range parsed.Phases[2].Blocks[0].Lines {
+	for _, l := range block.Lines {
 		if strings.Contains(l, "BUILD SUCCESS") {
 			found = true
 			break
@@ -51,5 +52,23 @@ func TestRegistry_ParseBuildAndSummaryPhases(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("Expected summary block to contain 'BUILD SUCCESS'")
+	}
+
+	// Validate summary meta fields
+	if block.Meta == nil {
+		t.Errorf("Expected summary block to have Meta field, got nil")
+	} else {
+		if mods, ok := block.Meta["modules"].([]interface{}); !ok || len(mods) != 3 {
+			t.Errorf("Expected 3 modules in meta, got %v", block.Meta["modules"])
+		}
+		if status, ok := block.Meta["overallStatus"].(string); !ok || status != "BUILD SUCCESS" {
+			t.Errorf("Expected overallStatus 'BUILD SUCCESS', got %v", block.Meta["overallStatus"])
+		}
+		if tt, ok := block.Meta["totalTime"].(string); !ok || tt == "" {
+			t.Errorf("Expected non-empty totalTime, got %v", block.Meta["totalTime"])
+		}
+		if fa, ok := block.Meta["finishedAt"].(string); !ok || fa == "" {
+			t.Errorf("Expected non-empty finishedAt, got %v", block.Meta["finishedAt"])
+		}
 	}
 }
