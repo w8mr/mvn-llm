@@ -1,8 +1,6 @@
 package structured
 
 import (
-	"fmt"
-	"os"
 	"reflect"
 
 	"github.com/agentic-ai/mvn-llm/internal/errors"
@@ -42,9 +40,9 @@ func NewOutputParser() *OutputParser {
 
 // bubbleUpAndInsert attempts to insert a node by first checking the current level,
 // then bubbling up the parent chain to find a valid insertion point.
-// If no valid parent is found in the chain, it reports an error and exits.
+// Returns true if insertion succeeded, false if no valid parent was found.
 // After insertion, if the node accepts children, the insertion point moves into it.
-func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
+func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) bool {
 	// Try current level first
 	if p.currentInsertionNode != nil && CanInsert(p.currentInsertionNode.Type, node.Type) {
 		node.Parent = p.currentInsertionNode
@@ -53,7 +51,7 @@ func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
 		if len(AcceptanceMap[node.Type]) > 0 {
 			p.currentInsertionNode = &p.currentInsertionNode.Children[len(p.currentInsertionNode.Children)-1]
 		}
-		return
+		return true
 	}
 
 	// Bubble up via parent chain
@@ -66,16 +64,12 @@ func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
 			if len(AcceptanceMap[node.Type]) > 0 {
 				p.currentInsertionNode = &p.currentInsertionNode.Children[len(p.currentInsertionNode.Children)-1]
 			}
-			return
+			return true
 		}
 	}
 
-	// No valid parent found - this should NOT happen
-	currentType := "nil"
-	if p.currentInsertionNode != nil {
-		currentType = p.currentInsertionNode.Type
-	}
-	errors.FatalWithIssue("Parser could not find valid insertion point for node type %q (current level: %s)", node.Type, currentType)
+	// No valid parent found - return false to let caller handle
+	return false
 }
 
 // Parse parses Maven log output lines into a hierarchical Node tree.
@@ -108,7 +102,9 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 			if contains(validTypes, parser.NodeType()) {
 				node, consumed, ok := parser.Parse(lines, idx)
 				if ok {
-					p.bubbleUpAndInsert(&root, *node)
+					if !p.bubbleUpAndInsert(&root, *node) {
+						errors.FatalWithMavenLog(lines, "Parser could not find valid insertion point for node type %q", node.Type)
+					}
 					idx += consumed
 					matched = true
 					break
@@ -133,7 +129,9 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 				Type:  "unparsable",
 				Lines: []string{lines[idx]},
 			}
-			p.bubbleUpAndInsert(&root, unparsable)
+			if !p.bubbleUpAndInsert(&root, unparsable) {
+				errors.FatalWithMavenLog(lines, "Parser could not find valid insertion point for node type %q", unparsable.Type)
+			}
 			idx++
 		}
 	}
@@ -159,31 +157,7 @@ func (p *OutputParser) ParseOutputStrict(lines []string, strict bool) *Structure
 		extra := findExtraLines(lines, collected)
 
 		if len(missing) > 0 || len(extra) > 0 {
-			fmt.Fprintf(os.Stderr, "ERROR: Parsing may have lost lines.\n")
-			fmt.Fprintf(os.Stderr, "  Original lines: %d\n", len(lines))
-			fmt.Fprintf(os.Stderr, "  Parsed lines: %d\n", len(collected))
-
-			if len(missing) > 0 {
-				fmt.Fprintf(os.Stderr, "  Missing: %d lines\n", len(missing))
-				for i, line := range missing {
-					if i >= 3 {
-						break
-					}
-					fmt.Fprintf(os.Stderr, "    %d: %s\n", i+1, line)
-				}
-			}
-
-			if len(extra) > 0 {
-				fmt.Fprintf(os.Stderr, "  Extra (unparsed): %d lines\n", len(extra))
-				for i, line := range extra {
-					if i >= 3 {
-						break
-					}
-					fmt.Fprintf(os.Stderr, "    %d: %s\n", i+1, line)
-				}
-			}
-
-			errors.FatalWithIssue("Parsing may have lost lines. Original: %d, Parsed: %d", len(lines), len(collected))
+			errors.FatalWithMavenLog(lines, "Parsing may have lost lines. Original: %d, Parsed: %d", len(lines), len(collected))
 		}
 	}
 
