@@ -24,10 +24,11 @@ var (
 	// Capture groups: [1]=plugin, [2]=version, [3]=goal, [5]=executionId, [6]=artifactId
 	PluginHeaderRegex = regexp.MustCompile(`^\[INFO\] --- ([\w\-\.]+):(\d+[\w\.]*):([\w\-]+)( \(([^)]+)\))? @ ([^ ]+) ---$`)
 
-	// Summary line pattern for module results
-	// Matches: module-name ............................... SUCCESS [  1.234 s]
-	// Capture groups: [1]=name, [2]=status, [3]=time
-	ModuleResultRegex = regexp.MustCompile(`^(.*?) +[. ]+ *(SUCCESS|FAILURE|SKIPPED) *\[ *([^\]]+?) *\]$`)
+	// Summary line pattern for module results (in reactor summary)
+	// Matches: [INFO] module-name ........................ SUCCESS [ 9.788 s]
+	//         [INFO] module-name ........................ SKIPPED
+	// Capture groups: [1]=name, [2]=status, [3]=time (optional)
+	ModuleResultRegex = regexp.MustCompile(`^\[INFO\] (.+?)[. ]+(SUCCESS|FAILURE|SKIPPED)(?:\[ (.+) \])?$`)
 
 	// Build status patterns
 	BuildSuccessRegex = regexp.MustCompile(`^\[INFO\] BUILD SUCCESS$`)
@@ -104,6 +105,11 @@ func isInitializationSeparator(line string) bool {
 // Build status detection
 func isBuildSuccess(line string) bool { return BuildSuccessRegex.MatchString(line) }
 func isBuildFailure(line string) bool { return BuildFailureRegex.MatchString(line) }
+
+// Module result line detection (in reactor summary)
+func isModuleResultLine(line string) bool {
+	return ModuleResultRegex.MatchString(line)
+}
 
 // Time info detection
 func isTotalTime(line string) bool  { return TotalTimeRegex.MatchString(line) }
