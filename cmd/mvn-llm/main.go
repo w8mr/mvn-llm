@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/agentic-ai/mvn-llm/internal/errors"
 	"github.com/agentic-ai/mvn-llm/internal/intent"
 	"github.com/agentic-ai/mvn-llm/internal/maven"
 	structured "github.com/agentic-ai/mvn-llm/internal/maven/structured"
@@ -23,7 +24,19 @@ func marshalStructuredJSON(out interface{}) ([]byte, error) {
 	return json.MarshalIndent(out, "", "  ")
 }
 
-func main() {
+// safeMain wraps the main logic with panic recovery for unknown errors.
+func safeMain() {
+	defer func() {
+		if r := recover(); r != nil {
+			errors.FatalWithIssue("Unexpected error: %v", r)
+		}
+	}()
+
+	mainLogic()
+}
+
+// mainLogic contains the original main function body.
+func mainLogic() {
 	projectRoot := flag.String("project-root", ".", "Project root directory")
 	noClean := flag.Bool("no-clean", false, "Skip mvn clean before build")
 	resumeFrom := flag.String("rf", "", "Resume build from specified module")
@@ -92,4 +105,9 @@ func main() {
 		}
 		return
 	}
+}
+
+// main is now a wrapper that handles panics.
+func main() {
+	safeMain()
 }

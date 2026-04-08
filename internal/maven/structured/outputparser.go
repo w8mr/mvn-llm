@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+
+	"github.com/agentic-ai/mvn-llm/internal/errors"
 )
 
 // contains checks if a slice contains a specific string.
@@ -40,7 +42,7 @@ func NewOutputParser() *OutputParser {
 
 // bubbleUpAndInsert attempts to insert a node by first checking the current level,
 // then bubbling up the parent chain to find a valid insertion point.
-// If no valid parent is found in the chain, the function returns without inserting.
+// If no valid parent is found in the chain, it reports an error and exits.
 // After insertion, if the node accepts children, the insertion point moves into it.
 func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
 	// Try current level first
@@ -67,6 +69,13 @@ func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
 			return
 		}
 	}
+
+	// No valid parent found - this should NOT happen
+	currentType := "nil"
+	if p.currentInsertionNode != nil {
+		currentType = p.currentInsertionNode.Type
+	}
+	errors.FatalWithIssue("Parser could not find valid insertion point for node type %q (current level: %s)", node.Type, currentType)
 }
 
 // Parse parses Maven log output lines into a hierarchical Node tree.
@@ -174,9 +183,7 @@ func (p *OutputParser) ParseOutputStrict(lines []string, strict bool) *Structure
 				}
 			}
 
-			fmt.Fprintf(os.Stderr, "\nPlease report this issue at: https://github.com/anomalyco/maven-tool/issues\n")
-			fmt.Fprintf(os.Stderr, "To disable strict mode: mvn-llm --no-strict ...\n")
-			os.Exit(1)
+			errors.FatalWithIssue("Parsing may have lost lines. Original: %d, Parsed: %d", len(lines), len(collected))
 		}
 	}
 
