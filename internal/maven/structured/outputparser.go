@@ -7,51 +7,72 @@ import (
 )
 
 type OutputParser struct {
-	Parsers []Parser
+	Parsers              []Parser
+	currentInsertionNode *Node
 }
 
 func NewOutputParser() *OutputParser {
 	return &OutputParser{
 		Parsers: []Parser{
 			&InitializationPhaseParser{},
-			&ModulePhaseParser{
-				SubParsers: []Parser{
-					&BuildPhaseParser{},
-				},
-			},
+			&ModulePhaseParser{},
+			&BuildPhaseParser{},
 			&SummaryPhaseParser{},
 		},
+		currentInsertionNode: nil,
 	}
 }
 
-func (p *OutputParser) canAnyParserMatch(lines []string, idx int) bool {
-	for _, parser := range p.Parsers {
-		if p.canParserMatch(parser, lines, idx) {
-			return true
-		}
+func (p *OutputParser) canInsert(nodeType string) bool {
+	if p.currentInsertionNode == nil {
+		return false
 	}
-	return false
+	return CanInsert(p.currentInsertionNode.Type, nodeType)
 }
 
-func (p *OutputParser) canParserMatch(parser Parser, lines []string, idx int) bool {
-	if _, _, ok := parser.Parse(lines, idx); ok {
-		return true
-	}
-	if mp, ok := parser.(*ModulePhaseParser); ok {
-		for _, sub := range mp.SubParsers {
-			if p.canParserMatch(sub, lines, idx) {
-				return true
-			}
+func (p *OutputParser) insertNode(node Node) {
+	if p.currentInsertionNode != nil {
+		p.currentInsertionNode.Children = append(p.currentInsertionNode.Children, node)
+		// If inserted node accepts children AND is not unparsable, move into it
+		// Unparsable nodes should NOT change the insertion point
+		if node.Type != "unparsable" && len(AcceptanceMap[node.Type]) > 0 {
+			p.currentInsertionNode = &p.currentInsertionNode.Children[len(p.currentInsertionNode.Children)-1]
 		}
 	}
-	if bp, ok := parser.(*BuildPhaseParser); ok {
-		for _, sub := range bp.SubParsers {
-			if p.canParserMatch(sub, lines, idx) {
-				return true
+}
+
+func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
+	// Try current level first
+	if p.currentInsertionNode != nil && CanInsert(p.currentInsertionNode.Type, node.Type) {
+		node.Parent = p.currentInsertionNode
+		p.currentInsertionNode.Children = append(p.currentInsertionNode.Children, node)
+		// If node doesn't accept children, stay at parent
+		if len(AcceptanceMap[node.Type]) == 0 || p.currentInsertionNode.Parent == nil {
+			p.currentInsertionNode = &p.currentInsertionNode.Children[len(p.currentInsertionNode.Children)-1]
+		} else {
+			p.currentInsertionNode = p.currentInsertionNode.Parent
+		}
+		return
+	}
+
+	// Bubble up via parent
+	for p.currentInsertionNode != nil && p.currentInsertionNode.Parent != nil {
+		p.currentInsertionNode = p.currentInsertionNode.Parent
+		if CanInsert(p.currentInsertionNode.Type, node.Type) {
+			node.Parent = p.currentInsertionNode
+			p.currentInsertionNode.Children = append(p.currentInsertionNode.Children, node)
+			// If node doesn't accept children, stay at parent
+			if len(AcceptanceMap[node.Type]) == 0 {
+				p.currentInsertionNode = &p.currentInsertionNode.Children[len(p.currentInsertionNode.Children)-1]
 			}
+			return
 		}
 	}
-	return false
+
+	// Insert at root
+	node.Parent = nil
+	root.Children = append(root.Children, node)
+	p.currentInsertionNode = &root.Children[len(root.Children)-1]
 }
 
 func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
@@ -63,16 +84,25 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 		Name:     "maven-build",
 		Type:     "root",
 		Children: []Node{},
+		Parent:   nil,
 	}
+	p.currentInsertionNode = &root
 
 	idx := 0
 	for idx < len(lines) {
 		matched := false
 
+		// Try all parsers
 		for _, parser := range p.Parsers {
 			node, consumed, ok := parser.Parse(lines, idx)
 			if ok {
-				root.Children = append(root.Children, *node)
+				// Try to insert at current level
+				if p.canInsert(node.Type) {
+					p.insertNode(*node)
+				} else {
+					// Cannot insert at current - bubble up to find a valid parent
+					p.bubbleUpAndInsert(&root, *node)
+				}
 				idx += consumed
 				matched = true
 				break
@@ -80,31 +110,28 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 		}
 
 		if !matched {
-			// Before adding to unparsable, check if any parser CAN match at current position
-			// If a parser can match, skip creating unparsable - it will match on next iteration
-			canMatch := p.canAnyParserMatch(lines, idx)
-
-			if !canMatch {
-				// Check if previous node was also unparsable - combine if adjacent
-				if len(root.Children) > 0 {
-					lastIdx := len(root.Children) - 1
-					if root.Children[lastIdx].Type == "unparsable" {
-						root.Children[lastIdx].Lines = append(root.Children[lastIdx].Lines, lines[idx])
-						idx++
-						continue
-					}
+			// Check if previous node was also unparsable - combine if adjacent
+			if p.currentInsertionNode != nil && len(p.currentInsertionNode.Children) > 0 {
+				lastIdx := len(p.currentInsertionNode.Children) - 1
+				if p.currentInsertionNode.Children[lastIdx].Type == "unparsable" {
+					p.currentInsertionNode.Children[lastIdx].Lines = append(
+						p.currentInsertionNode.Children[lastIdx].Lines, lines[idx])
+					idx++
+					continue
 				}
-				// New unparsable node
-				root.Children = append(root.Children, Node{
-					Name:  "unparsable",
-					Type:  "unparsable",
-					Lines: []string{lines[idx]},
-				})
-				idx++
-			} else {
-				// A parser can match here - skip this line, let parser handle it
-				idx++
 			}
+			// New unparsable node - try to insert, bubble if needed
+			unparsable := Node{
+				Name:  "unparsable",
+				Type:  "unparsable",
+				Lines: []string{lines[idx]},
+			}
+			if p.canInsert("unparsable") {
+				p.insertNode(unparsable)
+			} else {
+				p.bubbleUpAndInsert(&root, unparsable)
+			}
+			idx++
 		}
 	}
 

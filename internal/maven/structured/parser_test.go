@@ -43,6 +43,18 @@ func findChildByName(children []Node, name string) *Node {
 	return nil
 }
 
+func findNodeByType(root *Node, nodeType string) *Node {
+	if root.Type == nodeType {
+		return root
+	}
+	for i := range root.Children {
+		if found := findNodeByType(&root.Children[i], nodeType); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
 func findBuildBlocksWithStatus(parsed *StructuredOutput, status string) []Node {
 	var result []Node
 	for _, child := range parsed.Root.Children {
@@ -352,30 +364,39 @@ func TestParse_UnparsableBetweenInitializationAndModule(t *testing.T) {
 
 	t.Logf("Root children: %d", len(parsed.Root.Children))
 	for i, c := range parsed.Root.Children {
-		t.Logf("  Child %d: type=%s name=%s lines=%d", i, c.Type, c.Name, len(c.Lines))
+		t.Logf("  Child %d: type=%s name=%s lines=%d children=%d", i, c.Type, c.Name, len(c.Lines), len(c.Children))
+		for j, child := range c.Children {
+			t.Logf("    Grandchild %d: type=%s name=%s", j, child.Type, child.Name)
+		}
 	}
 
-	// Should have: initialization (6), unparsable (3 lines), module, summary = 4 children
-	if len(parsed.Root.Children) != 4 {
-		t.Errorf("Expected 4 children (init + unparsable + module + summary), got %d", len(parsed.Root.Children))
+	// Should have: initialization, module, summary = 3 direct children
+	if len(parsed.Root.Children) != 3 {
+		t.Errorf("Expected 3 children (init + module + summary), got %d", len(parsed.Root.Children))
 	}
 
-	// Verify unparsable node exists and has 2 lines (the 2 random lines)
-	unparsableNode := findChildByType(parsed.Root.Children, "unparsable")
-	if unparsableNode == nil {
-		t.Error("Expected unparsable node")
-	} else if len(unparsableNode.Lines) != 2 {
-		t.Errorf("Expected unparsable with 2 lines, got %d", len(unparsableNode.Lines))
+	// Verify unparsable node exists inside module (not at root) and has 2 lines
+	moduleNode := findChildByType(parsed.Root.Children, "module")
+	if moduleNode == nil {
+		t.Error("Expected module node")
+	} else {
+		unparsableInModule := findChildByType(moduleNode.Children, "unparsable")
+		if unparsableInModule == nil {
+			t.Error("Expected unparsable node inside module")
+		} else if len(unparsableInModule.Lines) != 2 {
+			t.Errorf("Expected unparsable with 2 lines, got %d", len(unparsableInModule.Lines))
+		}
+
+		// Verify build-block is also inside module
+		buildBlockInModule := findChildByType(moduleNode.Children, "build-block")
+		if buildBlockInModule == nil {
+			t.Error("Expected build-block inside module")
+		}
 	}
 
 	initNode := findChildByType(parsed.Root.Children, "initialization")
 	if initNode == nil {
 		t.Error("Expected initialization node")
-	}
-
-	moduleNode := findChildByType(parsed.Root.Children, "module")
-	if moduleNode == nil {
-		t.Error("Expected module node")
 	}
 
 	summaryNode := findChildByType(parsed.Root.Children, "summary")
