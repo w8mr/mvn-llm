@@ -38,6 +38,22 @@ func NewOutputParser() *OutputParser {
 	}
 }
 
+// getValidTypesUpChain returns all valid child types for the current node and all its ancestors.
+// This allows parsers to match at any valid level in the hierarchy.
+func getValidTypesUpChain(node *Node) []string {
+	var result []string
+	seen := make(map[string]bool)
+	for current := node; current != nil; current = current.Parent {
+		for _, t := range AcceptanceMap[current.Type] {
+			if !seen[t] {
+				seen[t] = true
+				result = append(result, t)
+			}
+		}
+	}
+	return result
+}
+
 // bubbleUpAndInsert attempts to insert a node by first checking the current level,
 // then bubbling up the parent chain to find a valid insertion point.
 // Returns true if insertion succeeded, false if no valid parent was found.
@@ -84,10 +100,10 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	for idx < len(lines) {
 		matched := false
 
-		// Get valid child types for current insertion level
-		validTypes := AcceptanceMap[p.currentInsertionNode.Type]
+		// Get valid child types for current level AND all ancestor levels
+		validTypes := getValidTypesUpChain(p.currentInsertionNode)
 
-		// Only try parsers that can produce valid node types for current level
+		// Only try parsers that can produce valid node types for current or ancestor levels
 		for _, parser := range p.Parsers {
 			if contains(validTypes, parser.NodeType()) {
 				node, consumed, ok := parser.Parse(lines, idx)

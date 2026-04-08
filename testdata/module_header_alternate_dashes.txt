@@ -1,3 +1,10 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] Baker                                                              [pom]
+[INFO] Baker Types                                                        [jar]
+[INFO] 
 [INFO] ---------------------< com.ing.baker:baker-types >----------------------
 [INFO] Building Baker Types 5.1.0-SNAPSHOT                               [2/28]
 [INFO]   from core/baker-types/pom.xml

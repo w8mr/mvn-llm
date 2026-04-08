@@ -1,0 +1,26 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] module-a                                                         [jar]
+[INFO] module-b                                                         [jar]
+[INFO] 
+[INFO] ---------------------< com.example:module-a >----------------------
+[INFO] Building module-a 1.0.0                                          [1/2]
+[INFO]   from module-a/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ module-a ---
+[INFO] 
+[INFO] --- compiler:3.8.1:compile (default-compile) @ module-a ---
+[INFO] Compiling 1 source file
+[INFO] 
+[INFO] ---------------------< com.example:module-b >----------------------
+[INFO] Building module-b 1.0.0                                          [2/2]
+[INFO]   from module-b/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ module-b ---
+[INFO] 
+[INFO] --- compiler:3.8.1:compile (default-compile) @ module-b ---
+[INFO] Compiling 1 source file

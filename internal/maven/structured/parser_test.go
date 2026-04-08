@@ -79,8 +79,8 @@ func TestParse_ModuleHeaderWithAlternateDashes(t *testing.T) {
 		t.Logf("Child %d: Type=%q, Name=%q, Lines=%d", i, child.Type, child.Name, len(child.Lines))
 	}
 
-	if len(parsed.Root.Children) != 1 {
-		t.Fatalf("Expected 1 child (module), got %d", len(parsed.Root.Children))
+	if len(parsed.Root.Children) < 2 {
+		t.Fatalf("Expected at least 2 children (initialization, module...), got %d", len(parsed.Root.Children))
 	}
 
 	moduleNode := findChildByType(parsed.Root.Children, "module")
@@ -113,5 +113,61 @@ func TestParse_ModuleHeaderWithAlternateDashes(t *testing.T) {
 	buildBlockNode := findChildByType(moduleNode.Children, "build-block")
 	if buildBlockNode == nil {
 		t.Error("Expected build-block node inside module")
+	}
+}
+
+func TestParse_TwoModules(t *testing.T) {
+	repoRoot := testutil.FindRepoRoot()
+	filePath := filepath.Join(repoRoot, "testdata", "two_modules.txt")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("unable to read test data: %v", err)
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+
+	parsed := NewOutputParser().ParseOutput(lines)
+
+	t.Logf("Root children count: %d", len(parsed.Root.Children))
+	for i, child := range parsed.Root.Children {
+		t.Logf("Child %d: Type=%q, Name=%q, Lines=%d", i, child.Type, child.Name, len(child.Lines))
+	}
+
+	// Should have: initialization, module-a, module-b
+	if len(parsed.Root.Children) != 3 {
+		t.Fatalf("Expected 3 children (init, module-a, module-b), got %d", len(parsed.Root.Children))
+	}
+
+	moduleA := findChildByType(parsed.Root.Children, "module")
+	if moduleA == nil {
+		t.Error("Expected module node for module-a")
+	} else {
+		if moduleA.Name != "module-a" {
+			t.Errorf("Expected module name 'module-a', got %q", moduleA.Name)
+		}
+		if len(moduleA.Children) == 0 {
+			t.Error("Expected children inside module-a")
+		}
+	}
+
+	// Find module-b (second module)
+	moduleCount := 0
+	var moduleB *Node
+	for _, child := range parsed.Root.Children {
+		if child.Type == "module" {
+			moduleCount++
+			if moduleCount == 2 {
+				moduleB = &child
+			}
+		}
+	}
+	if moduleB == nil {
+		t.Error("Expected module node for module-b")
+	} else {
+		if moduleB.Name != "module-b" {
+			t.Errorf("Expected module name 'module-b', got %q", moduleB.Name)
+		}
+		if len(moduleB.Children) == 0 {
+			t.Error("Expected children inside module-b")
+		}
 	}
 }
