@@ -38,32 +38,9 @@ func NewOutputParser() *OutputParser {
 	}
 }
 
-// canInsert checks whether the current insertion node can accept a child of the given type.
-// Returns false if currentInsertionNode is nil or the type is not accepted.
-func (p *OutputParser) canInsert(nodeType string) bool {
-	if p.currentInsertionNode == nil {
-		return false
-	}
-	return CanInsert(p.currentInsertionNode.Type, nodeType)
-}
-
-// insertNode appends a node as a child of the current insertion point.
-// If the node accepts children (has entries in AcceptanceMap), the insertion point moves into it.
-// Exception: unparsable nodes never change the insertion point to prevent breaking the hierarchy.
-func (p *OutputParser) insertNode(node Node) {
-	if p.currentInsertionNode != nil {
-		p.currentInsertionNode.Children = append(p.currentInsertionNode.Children, node)
-		// If inserted node accepts children AND is not unparsable, move into it
-		// Unparsable nodes should NOT change the insertion point
-		if node.Type != "unparsable" && len(AcceptanceMap[node.Type]) > 0 {
-			p.currentInsertionNode = &p.currentInsertionNode.Children[len(p.currentInsertionNode.Children)-1]
-		}
-	}
-}
-
 // bubbleUpAndInsert attempts to insert a node by first checking the current level,
 // then bubbling up the parent chain to find a valid insertion point.
-// If no valid parent is found in the chain, the node is inserted at root level.
+// If no valid parent is found in the chain, the function returns without inserting.
 // After insertion, if the node accepts children, the insertion point moves into it.
 func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
 	// Try current level first
@@ -90,11 +67,6 @@ func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
 			return
 		}
 	}
-
-	// Insert at root
-	node.Parent = nil
-	root.Children = append(root.Children, node)
-	p.currentInsertionNode = &root.Children[len(root.Children)-1]
 }
 
 // Parse parses Maven log output lines into a hierarchical Node tree.
@@ -127,7 +99,7 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 			if contains(validTypes, parser.NodeType()) {
 				node, consumed, ok := parser.Parse(lines, idx)
 				if ok {
-					p.insertNode(*node)
+					p.bubbleUpAndInsert(&root, *node)
 					idx += consumed
 					matched = true
 					break
@@ -146,17 +118,13 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 					continue
 				}
 			}
-			// New unparsable node - try to insert, bubble if needed
+			// New unparsable node - bubble up if needed
 			unparsable := Node{
 				Name:  "unparsable",
 				Type:  "unparsable",
 				Lines: []string{lines[idx]},
 			}
-			if p.canInsert("unparsable") {
-				p.insertNode(unparsable)
-			} else {
-				p.bubbleUpAndInsert(&root, unparsable)
-			}
+			p.bubbleUpAndInsert(&root, unparsable)
 			idx++
 		}
 	}
