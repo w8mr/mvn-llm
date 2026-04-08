@@ -28,7 +28,7 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bo
 	foundSummaryStart := false
 	for i := startIdx; i < len(lines); i++ {
 		if !foundSummaryStart && isBuildSeparator(lines[i]) {
-			if i+1 < len(lines) && strings.HasPrefix(lines[i+1], "[INFO] Reactor Summary for") {
+			if i+1 < len(lines) && isReactorSummaryFor(lines[i+1]) {
 				start = i
 				foundSummaryStart = true
 				i++
@@ -41,13 +41,13 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bo
 		if foundSummaryStart && start != -1 {
 			var hasBuildStatus, hasTotalTime, hasFinishedAt, hasFinalSep bool
 			for j := i; j < len(lines); j++ {
-				if !hasBuildStatus && (lines[j] == "[INFO] BUILD SUCCESS" || lines[j] == "[INFO] BUILD FAILURE") {
+				if !hasBuildStatus && (isBuildSuccess(lines[j]) || isBuildFailure(lines[j])) {
 					hasBuildStatus = true
 				}
-				if hasBuildStatus && !hasTotalTime && strings.HasPrefix(lines[j], "[INFO] Total time:") {
+				if hasBuildStatus && !hasTotalTime && isTotalTime(lines[j]) {
 					hasTotalTime = true
 				}
-				if hasTotalTime && !hasFinishedAt && strings.HasPrefix(lines[j], "[INFO] Finished at:") {
+				if hasTotalTime && !hasFinishedAt && isFinishedAt(lines[j]) {
 					hasFinishedAt = true
 				}
 				if hasFinishedAt && isBuildSeparator(lines[j]) {

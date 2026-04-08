@@ -28,62 +28,86 @@ var (
 	// Matches: module-name ............................... SUCCESS [  1.234 s]
 	// Capture groups: [1]=name, [2]=status, [3]=time
 	ModuleResultRegex = regexp.MustCompile(`^(.*?) +[. ]+ *(SUCCESS|FAILURE|SKIPPED) *\[ *([^\]]+?) *\]$`)
+
+	// Build status patterns
+	BuildSuccessRegex = regexp.MustCompile(`^\[INFO\] BUILD SUCCESS$`)
+	BuildFailureRegex = regexp.MustCompile(`^\[INFO\] BUILD FAILURE$`)
+
+	// Time patterns
+	TotalTimeRegex  = regexp.MustCompile(`^\[INFO\] Total time: (.+)$`)
+	FinishedAtRegex = regexp.MustCompile(`^\[INFO\] Finished at: (.+)$`)
+
+	// Initialization pattern
+	ReactorSummaryForRegex = regexp.MustCompile(`^\[INFO\] Reactor Summary for`)
 )
 
-// isModuleHeader checks if a line is a Maven module header.
-// Example: [INFO] ---------------------< com.example:module-name >----------------------
+// Module header detection patterns (prefix-based, no extraction needed)
+func isModuleBuildingLine(line string) bool { return strings.HasPrefix(line, "[INFO] Building") }
+func isModulePomFileLine(line string) bool  { return strings.HasPrefix(line, "[INFO]   from") }
+
+// Module header detection (full line matching)
 func isModuleHeader(line string) bool {
 	return ModuleHeaderRegex.MatchString(line)
 }
 
-// isModuleSeparator checks if a line is a module packaging separator.
-// Example: [INFO] --------------------------------[ jar ]---------------------------------
+// Module separator detection (full line matching)
 func isModuleSeparator(line string) bool {
-	return ModuleSeparatorRegex.MatchString(line)
+	return strings.HasPrefix(line, "[INFO] ") && strings.HasSuffix(line, "---------------------------------")
 }
 
-// isPluginHeader checks if a line is a Maven plugin execution header.
-// Example: [INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ module-name ---
+// Plugin/build block detection (prefix-based, fast)
 func isPluginHeader(line string) bool {
 	return strings.HasPrefix(line, "[INFO] --- ")
 }
 
-// isBuildBlockHeader is an alias for isPluginHeader (they are the same pattern)
-func isBuildBlockHeader(line string) bool {
-	return isPluginHeader(line)
-}
+// Alias for clarity
+func isBuildBlockHeader(line string) bool { return isPluginHeader(line) }
 
-// isSeparator checks if a line is a build separator (all dashes).
-// Example: [INFO] ------------------------------------------------------------------------
+// Separator detection (any dash line)
 func isSeparator(line string) bool {
 	trimmed := strings.TrimSpace(line)
 	return trimmed == "[INFO] ------------------------------------------------------------------------" ||
 		strings.HasPrefix(trimmed, "[INFO] ----")
 }
 
-// isSummary checks if a line indicates the start of a summary section.
+// Alias for compatibility
+var isBuildSeparator = isSeparator
+
+// Summary section detection
 func isSummary(line string) bool {
 	trimmed := strings.TrimSpace(line)
 	return trimmed == "[INFO] ------------------------------------------------------------------------" ||
-		strings.HasPrefix(trimmed, "[INFO] Reactor Summary for") ||
+		ReactorSummaryForRegex.MatchString(trimmed) ||
 		strings.HasPrefix(trimmed, "[INFO] BUILD ")
 }
 
-// isEmptyInfoLine checks if a line is an empty [INFO] line.
+// Empty line detection
 func isEmptyInfoLine(line string) bool {
 	return strings.HasPrefix(line, "[INFO] ") && strings.TrimSpace(line[7:]) == ""
 }
 
-// isBuildSeparator is an alias for isSeparator (kept for backward compatibility)
-var isBuildSeparator = isSeparator
-
-// isReactorHeader checks if a line is the Reactor Build Order header.
+// Reactor header detection
 func isReactorHeader(line string) bool {
 	return line == "[INFO] Reactor Build Order:"
 }
 
-// isInitializationSeparator checks if a line marks the end of initialization phase.
-// Returns true for module headers or build block headers.
+// Reactor Summary for header detection
+func isReactorSummaryFor(line string) bool {
+	return ReactorSummaryForRegex.MatchString(line)
+}
+
+// Initialization separator detection (module header OR plugin header)
 func isInitializationSeparator(line string) bool {
 	return isModuleHeader(line) || isPluginHeader(line)
 }
+
+// Build status detection
+func isBuildSuccess(line string) bool { return BuildSuccessRegex.MatchString(line) }
+func isBuildFailure(line string) bool { return BuildFailureRegex.MatchString(line) }
+
+// Time info detection
+func isTotalTime(line string) bool  { return TotalTimeRegex.MatchString(line) }
+func isFinishedAt(line string) bool { return FinishedAtRegex.MatchString(line) }
+
+// Empty line detection (any line with only whitespace after [INFO] prefix)
+func isEmptyLine(line string) bool { return strings.TrimSpace(line) == "" }

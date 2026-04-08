@@ -56,25 +56,24 @@ func findHeaderEnd(lines []string, startIdx int) int {
 	if startIdx+2 >= len(lines) {
 		return startIdx
 	}
-	if !strings.HasPrefix(lines[startIdx+1], "[INFO] Building") {
+	if !isModuleBuildingLine(lines[startIdx+1]) {
 		return startIdx
 	}
-	if !strings.HasPrefix(lines[startIdx+2], "[INFO]   from") {
+	if !isModulePomFileLine(lines[startIdx+2]) {
 		return startIdx
 	}
 
 	end := startIdx + 3
 
 	// Check for module separator line with any reasonable number of dashes
-	// e.g., "------------------------< ... >------------------------" or "---------------------< ... >----------------------"
 	if end < len(lines) {
 		sepLine := lines[end]
-		if strings.HasPrefix(sepLine, "[INFO] ") && strings.HasSuffix(sepLine, "---------------------------------") {
+		if isModuleSeparator(sepLine) {
 			// Check that it has matching dash count on both sides (at least 20 dashes each side)
 			inner := sepLine[len("[INFO] "):]
 			dashCount := strings.Count(inner, "-")
 			if dashCount >= 40 { // At least 20 dashes on each side
-				if end+1 < len(lines) && strings.HasPrefix(lines[end+1], "[INFO] ") && strings.TrimSpace(lines[end+1][7:]) == "" {
+				if end+1 < len(lines) && isEmptyInfoLine(lines[end+1]) {
 					end += 2
 				}
 			}
