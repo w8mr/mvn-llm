@@ -1,0 +1,37 @@
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO] 
+[INFO] Baker 5.1.0-SNAPSHOT ............................... SUCCESS [  0.404 s]
+[INFO] Baker Types 5.1.0-SNAPSHOT ......................... SUCCESS [  8.270 s]
+[INFO] Kotlin Graph Library 5.1.0-SNAPSHOT ................ SUCCESS [  2.744 s]
+[INFO] Kotlin Baker Intermediate Language 5.1.0-SNAPSHOT .. FAILURE [  0.327 s]
+[INFO] Baker Intermediate Language 5.1.0-SNAPSHOT ......... SKIPPED
+[INFO] Baker Annotations 5.1.0-SNAPSHOT ................... SKIPPED
+[INFO] Baker Recipe DSL 5.1.0-SNAPSHOT .................... SKIPPED
+[INFO] Baker Recipe DSL Kotlin 5.1.0-SNAPSHOT ............. SKIPPED
+[INFO] Baker Recipe Compiler 5.1.0-SNAPSHOT ............... SKIPPED
+[INFO] Baker Interface 5.1.0-SNAPSHOT ..................... SKIPPED
+[INFO] Baker Recipe Manager Interface 5.1.0-SNAPSHOT ...... SKIPPED
+[INFO] Baker Interface Kotlin 5.1.0-SNAPSHOT .............. SKIPPED
+[INFO] Baker Akka Runtime 5.1.0-SNAPSHOT .................. SKIPPED
+[INFO] Kotlin Baker Actors 5.1.0-SNAPSHOT ................. SKIPPED
+[INFO] Kotlin Baker Recipe Manager 1.0-SNAPSHOT ........... SKIPPED
+[INFO] Baker Recipe Manager 5.1.0-SNAPSHOT ................ SKIPPED
+[INFO] Baker Akka Runtime 5.1.0-SNAPSHOT .................. SKIPPED
+[INFO] Baker Test 5.1.0-SNAPSHOT .......................... SKIPPED
+[INFO] Baker HTTP Client 5.1.0-SNAPSHOT ................... SKIPPED
+[INFO] Baker HTTP Dashboard 5.1.0-SNAPSHOT ................ SKIPPED
+[INFO] Baker HTTP Server 5.1.0-SNAPSHOT ................... SKIPPED
+[INFO] Bakery Interaction Protocol 5.1.0-SNAPSHOT ......... SKIPPED
+[INFO] Bakery State 5.1.0-SNAPSHOT ........................ SKIPPED
+[INFO] Bakery Interaction 5.1.0-SNAPSHOT .................. SKIPPED
+[INFO] Baker Example 5.1.0-SNAPSHOT ....................... SKIPPED
+[INFO] Bakery Client Example 5.1.0-SNAPSHOT ............... SKIPPED
+[INFO] Bakery Kafka Listener Example 5.1.0-SNAPSHOT ....... SKIPPED
+[INFO] Documentation Code Snippets 5.1.0-SNAPSHOT ......... SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  11.945 s
+[INFO] Finished at: 2026-04-08T16:53:57+02:00
+[INFO] ------------------------------------------------------------------------

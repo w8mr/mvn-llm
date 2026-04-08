@@ -209,3 +209,33 @@ func TestParse_ModuleWithWarnings(t *testing.T) {
 		}
 	}
 }
+
+func TestParse_SummaryWithReactor(t *testing.T) {
+	repoRoot := testutil.FindRepoRoot()
+	filePath := filepath.Join(repoRoot, "testdata", "summary_with_reactor.txt")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("unable to read test data: %v", err)
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+
+	parsed := NewOutputParser().ParseOutput(lines)
+
+	t.Logf("Root children count: %d", len(parsed.Root.Children))
+	for i, child := range parsed.Root.Children {
+		t.Logf("Child %d: Type=%q, Name=%q", i, child.Type, child.Name)
+	}
+
+	summaryNode := findChildByType(parsed.Root.Children, "summary")
+	if summaryNode == nil {
+		t.Error("Expected summary node")
+	} else {
+		t.Logf("Summary node found with %d lines", len(summaryNode.Lines))
+		if meta, ok := summaryNode.Meta["modules"].([]map[string]any); ok {
+			t.Logf("Found %d modules in summary", len(meta))
+			for i, m := range meta {
+				t.Logf("  Module %d: %+v", i, m)
+			}
+		}
+	}
+}

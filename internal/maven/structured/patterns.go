@@ -39,7 +39,7 @@ var (
 	FinishedAtRegex = regexp.MustCompile(`^\[INFO\] Finished at: (.+)$`)
 
 	// Initialization pattern
-	ReactorSummaryForRegex = regexp.MustCompile(`^\[INFO\] Reactor Summary for`)
+	ReactorSummaryForRegex = regexp.MustCompile(`^\[INFO\] Reactor Summary( for)?(:)?$`)
 )
 
 // Module header detection patterns (prefix-based, no extraction needed)
