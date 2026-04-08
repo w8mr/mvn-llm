@@ -143,10 +143,7 @@ func (p *OutputParser) ParseOutputStrict(lines []string, strict bool) *Structure
 
 	if strict && ok {
 		collected := collectAllLines(root)
-		missing := findMissingLines(lines, collected)
-		extra := findExtraLines(lines, collected)
-
-		if len(missing) > 0 || len(extra) > 0 {
+		if !LinesMatch(lines, collected) {
 			errors.FatalWithMavenLog(lines, "Parsing may have lost lines. Original: %d, Parsed: %d", len(lines), len(collected))
 		}
 	}
@@ -162,38 +159,6 @@ func collectAllLines(node *Node) []string {
 		lines = append(lines, collectAllLines(&child)...)
 	}
 	return lines
-}
-
-// findMissingLines returns lines from the original input that don't appear in the parsed output.
-func findMissingLines(original, parsed []string) []string {
-	parsedSet := make(map[string]bool)
-	for _, line := range parsed {
-		parsedSet[line] = true
-	}
-
-	var missing []string
-	for _, line := range original {
-		if !parsedSet[line] {
-			missing = append(missing, line)
-		}
-	}
-	return missing
-}
-
-// findExtraLines returns lines in the parsed output that don't appear in the original input.
-func findExtraLines(original, parsed []string) []string {
-	originalSet := make(map[string]bool)
-	for _, line := range original {
-		originalSet[line] = true
-	}
-
-	var extra []string
-	for _, line := range parsed {
-		if !originalSet[line] {
-			extra = append(extra, line)
-		}
-	}
-	return extra
 }
 
 // LinesMatch compares two slices of strings for exact equality.
