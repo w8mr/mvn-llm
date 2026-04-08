@@ -6,11 +6,16 @@ import (
 	"reflect"
 )
 
+// OutputParser coordinates multiple phase parsers to build a hierarchical tree structure.
+// It maintains insertion-point tracking to ensure nodes are placed in valid parent positions
+// according to the AcceptanceMap rules.
 type OutputParser struct {
 	Parsers              []Parser
 	currentInsertionNode *Node
 }
 
+// NewOutputParser creates a new OutputParser with all available phase parsers.
+// The parser list is flat (all at root level); hierarchy is maintained via insertion-point tracking.
 func NewOutputParser() *OutputParser {
 	return &OutputParser{
 		Parsers: []Parser{
@@ -23,6 +28,8 @@ func NewOutputParser() *OutputParser {
 	}
 }
 
+// canInsert checks whether the current insertion node can accept a child of the given type.
+// Returns false if currentInsertionNode is nil or the type is not accepted.
 func (p *OutputParser) canInsert(nodeType string) bool {
 	if p.currentInsertionNode == nil {
 		return false
@@ -30,6 +37,9 @@ func (p *OutputParser) canInsert(nodeType string) bool {
 	return CanInsert(p.currentInsertionNode.Type, nodeType)
 }
 
+// insertNode appends a node as a child of the current insertion point.
+// If the node accepts children (has entries in AcceptanceMap), the insertion point moves into it.
+// Exception: unparsable nodes never change the insertion point to prevent breaking the hierarchy.
 func (p *OutputParser) insertNode(node Node) {
 	if p.currentInsertionNode != nil {
 		p.currentInsertionNode.Children = append(p.currentInsertionNode.Children, node)
@@ -41,28 +51,30 @@ func (p *OutputParser) insertNode(node Node) {
 	}
 }
 
+// bubbleUpAndInsert attempts to insert a node by first checking the current level,
+// then bubbling up the parent chain to find a valid insertion point.
+// If no valid parent is found in the chain, the node is inserted at root level.
+// After insertion, if the node accepts children, the insertion point moves into it.
 func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
 	// Try current level first
 	if p.currentInsertionNode != nil && CanInsert(p.currentInsertionNode.Type, node.Type) {
 		node.Parent = p.currentInsertionNode
 		p.currentInsertionNode.Children = append(p.currentInsertionNode.Children, node)
-		// If node doesn't accept children, stay at parent
-		if len(AcceptanceMap[node.Type]) == 0 || p.currentInsertionNode.Parent == nil {
+		// If inserted node accepts children, move into it; otherwise stay at parent
+		if len(AcceptanceMap[node.Type]) > 0 {
 			p.currentInsertionNode = &p.currentInsertionNode.Children[len(p.currentInsertionNode.Children)-1]
-		} else {
-			p.currentInsertionNode = p.currentInsertionNode.Parent
 		}
 		return
 	}
 
-	// Bubble up via parent
+	// Bubble up via parent chain
 	for p.currentInsertionNode != nil && p.currentInsertionNode.Parent != nil {
 		p.currentInsertionNode = p.currentInsertionNode.Parent
 		if CanInsert(p.currentInsertionNode.Type, node.Type) {
 			node.Parent = p.currentInsertionNode
 			p.currentInsertionNode.Children = append(p.currentInsertionNode.Children, node)
-			// If node doesn't accept children, stay at parent
-			if len(AcceptanceMap[node.Type]) == 0 {
+			// If inserted node accepts children, move into it; otherwise stay at parent
+			if len(AcceptanceMap[node.Type]) > 0 {
 				p.currentInsertionNode = &p.currentInsertionNode.Children[len(p.currentInsertionNode.Children)-1]
 			}
 			return
@@ -75,6 +87,11 @@ func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) {
 	p.currentInsertionNode = &root.Children[len(root.Children)-1]
 }
 
+// Parse parses Maven log output lines into a hierarchical Node tree.
+// It iterates through lines, trying each parser in order. When a parser matches,
+// it attempts to insert at the current level. If insertion fails (parent doesn't accept
+// the node type), it bubbles up to find a valid parent. Unparsable lines are combined
+// into single nodes when consecutive.
 func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx != 0 {
 		return nil, 0, false
@@ -138,10 +155,15 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	return &root, len(lines), true
 }
 
+// ParseOutput parses Maven log lines into a StructuredOutput with a hierarchical Node tree.
+// This is the main entry point for parsing Maven output.
 func (p *OutputParser) ParseOutput(lines []string) *StructuredOutput {
 	return p.ParseOutputStrict(lines, false)
 }
 
+// ParseOutputStrict parses Maven log lines and optionally verifies no lines were lost.
+// If strict=true, it compares original and parsed lines; on mismatch, it prints an error
+// and exits. Use strict mode for debugging parsing issues.
 func (p *OutputParser) ParseOutputStrict(lines []string, strict bool) *StructuredOutput {
 	root, _, ok := p.Parse(lines, 0)
 
@@ -184,6 +206,7 @@ func (p *OutputParser) ParseOutputStrict(lines []string, strict bool) *Structure
 	return &StructuredOutput{Root: *root}
 }
 
+// collectAllLines recursively collects all lines from a node and its children.
 func collectAllLines(node *Node) []string {
 	var lines []string
 	lines = append(lines, node.Lines...)
@@ -193,6 +216,7 @@ func collectAllLines(node *Node) []string {
 	return lines
 }
 
+// findMissingLines returns lines from the original input that don't appear in the parsed output.
 func findMissingLines(original, parsed []string) []string {
 	parsedSet := make(map[string]bool)
 	for _, line := range parsed {
@@ -208,6 +232,7 @@ func findMissingLines(original, parsed []string) []string {
 	return missing
 }
 
+// findExtraLines returns lines in the parsed output that don't appear in the original input.
 func findExtraLines(original, parsed []string) []string {
 	originalSet := make(map[string]bool)
 	for _, line := range original {
@@ -223,6 +248,8 @@ func findExtraLines(original, parsed []string) []string {
 	return extra
 }
 
+// LinesMatch compares two slices of strings for exact equality.
+// Used to verify parsing preserves all original lines.
 func LinesMatch(original, parsed []string) bool {
 	return reflect.DeepEqual(original, parsed)
 }

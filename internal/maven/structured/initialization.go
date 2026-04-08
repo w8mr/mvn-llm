@@ -2,8 +2,13 @@ package structured
 
 import "strings"
 
+// InitializationPhaseParser parses the Maven initialization section at the start of the log.
+// This includes the Reactor Build Order section listing all modules to be built.
 type InitializationPhaseParser struct{}
 
+// Parse attempts to parse initialization content starting at startIdx.
+// Only matches at startIdx=0 (initialization must be at the beginning).
+// Returns the parsed Node (with module list), number of lines consumed, and whether parsing succeeded.
 func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx > 0 {
 		return nil, 0, false

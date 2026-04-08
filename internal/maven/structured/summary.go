@@ -5,8 +5,12 @@ import (
 	"strings"
 )
 
+// SummaryPhaseParser parses the Maven build summary section at the end of the log.
+// It extracts overall build status, total time, finish time, and per-module results.
 type SummaryPhaseParser struct{}
 
+// Parse attempts to parse a summary block starting at startIdx.
+// Returns the parsed Node (with overall status, module results), number of lines consumed, and whether parsing succeeded.
 func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx >= len(lines) {
 		return nil, 0, false

@@ -5,10 +5,13 @@ import (
 	"strings"
 )
 
-type ModulePhaseParser struct {
-	SubParsers []Parser
-}
+// ModulePhaseParser parses Maven module headers (e.g., [INFO] --- module-a <artifact:version> ---).
+// It extracts module metadata and returns a node representing the module container.
+// Build blocks within the module are handled by OutputParser's insertion-point tracking.
+type ModulePhaseParser struct{}
 
+// Parse attempts to parse a module header starting at startIdx.
+// Returns the parsed Node (with metadata), number of lines consumed, and whether parsing succeeded.
 func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx >= len(lines) {
 		return nil, 0, false
@@ -38,29 +41,10 @@ func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, boo
 		Children: []Node{},
 	}
 
-	idx := headerEnd
-	for idx < len(lines) {
-		if isModuleHeader(lines[idx]) || isSummary(lines[idx]) {
-			break
-		}
+	// Build-phase parsing is now handled by OutputParser's insertion-point tracking
+	// This returns only the module header, OutputParser handles children insertion
 
-		matched := false
-		for _, subParser := range p.SubParsers {
-			childNode, consumed, ok := subParser.Parse(lines, idx)
-			if ok {
-				node.Children = append(node.Children, *childNode)
-				idx += consumed
-				matched = true
-				break
-			}
-		}
-
-		if !matched {
-			break
-		}
-	}
-
-	return node, idx - startIdx, true
+	return node, headerEnd - startIdx, true
 }
 
 func isModuleHeader(line string) bool {

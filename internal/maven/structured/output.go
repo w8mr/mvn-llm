@@ -1,5 +1,8 @@
 package structured
 
+// Node represents a parsed section of Maven log output.
+// It forms a tree structure where each node may have children.
+// Parent is a back-reference for traversal (not serialized).
 type Node struct {
 	Name     string         `json:"name"`
 	Type     string         `json:"type"`
@@ -9,11 +12,13 @@ type Node struct {
 	Parent   *Node          `json:"-"`
 }
 
+// StructuredOutput is the top-level result of parsing Maven output.
 type StructuredOutput struct {
 	Root Node `json:"root"`
 }
 
-// AcceptanceMap defines what child node types each parent node type accepts
+// AcceptanceMap defines which child node types each parent node type can contain.
+// Empty list means the node type cannot have children.
 var AcceptanceMap = map[string][]string{
 	"root":           {"initialization", "module", "summary", "unparsable"},
 	"module":         {"build-block", "unparsable"},
@@ -22,7 +27,8 @@ var AcceptanceMap = map[string][]string{
 	"initialization": {},
 }
 
-// CanInsert checks if a child node type can be inserted into a parent node type
+// CanInsert checks whether a child node can be inserted as a child of the given parent type.
+// It consults AcceptanceMap to determine validity.
 func CanInsert(parentType, childType string) bool {
 	allowed, ok := AcceptanceMap[parentType]
 	if !ok {
