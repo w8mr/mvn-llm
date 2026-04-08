@@ -1,9 +1,5 @@
 package structured
 
-import (
-	"regexp"
-)
-
 // BuildPhaseParser parses Maven plugin execution blocks (e.g., [INFO] --- maven-compiler-plugin:3.11.0:compile @ my-app ---).
 // Each block represents a single plugin invocation with its output.
 type BuildPhaseParser struct{}
@@ -13,33 +9,30 @@ func (p *BuildPhaseParser) NodeType() string {
 	return "build-block"
 }
 
-var pluginHeaderRegex = regexp.MustCompile(`^\[INFO\] --- [\w\-\.]+:\d+[\w\.]*:[\w\-]+( \([^)]+\))? @ [^ ]+ ---$`)
-var moduleArtifactSeparatorRegex = regexp.MustCompile(`^\[INFO\] [-]+< [^>]+ >[-]+$`)
-
 // Parse attempts to parse a build phase block starting at startIdx.
 // Returns the parsed Node, number of lines consumed, and whether parsing succeeded.
 func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx >= len(lines) {
 		return nil, 0, false
 	}
-	if !pluginHeaderRegex.MatchString(lines[startIdx]) {
+	if !PluginHeaderRegex.MatchString(lines[startIdx]) {
 		return nil, 0, false
 	}
 	start := startIdx
 	end := start + 1
 	for end < len(lines) {
-		if pluginHeaderRegex.MatchString(lines[end]) {
+		if PluginHeaderRegex.MatchString(lines[end]) {
 			break
 		}
-		if moduleArtifactSeparatorRegex.MatchString(lines[end]) {
+		if ModuleArtifactSeparatorRegex.MatchString(lines[end]) {
 			break
 		}
-		if lines[end] == "[INFO] ------------------------------------------------------------------------" {
+		if isBuildSeparator(lines[end]) {
 			break
 		}
 		end++
 	}
-	for end < len(lines) && lines[end] == "[INFO] " {
+	for end < len(lines) && isEmptyInfoLine(lines[end]) {
 		end++
 	}
 	status := "SUCCESS"
@@ -62,8 +55,7 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool
 	goal := ""
 	executionId := ""
 	artifactId := ""
-	pluginHeaderParseRe := regexp.MustCompile(`^\[INFO\] --- ([\w\-\.]+):(\d+[\w\.]*):([\w\-]+)( \(([^)]+)\))? @ ([^ ]+) ---`)
-	m := pluginHeaderParseRe.FindStringSubmatch(header)
+	m := PluginHeaderRegex.FindStringSubmatch(header)
 	if len(m) >= 7 {
 		plugin = m[1]
 		version = m[2]

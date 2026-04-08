@@ -52,20 +52,6 @@ func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, boo
 	return node, headerEnd - startIdx, true
 }
 
-func isModuleHeader(line string) bool {
-	return strings.HasPrefix(line, "[INFO] ") && strings.Contains(line, "<") && strings.Contains(line, ">")
-}
-
-func isSummary(line string) bool {
-	return line == "[INFO] ------------------------------------------------------------------------" ||
-		strings.HasPrefix(line, "[INFO] Reactor Summary for") ||
-		strings.HasPrefix(line, "[INFO] BUILD ")
-}
-
-func isPluginHeader(line string) bool {
-	return strings.HasPrefix(line, "[INFO] --- ")
-}
-
 func findHeaderEnd(lines []string, startIdx int) int {
 	if startIdx+2 >= len(lines) {
 		return startIdx

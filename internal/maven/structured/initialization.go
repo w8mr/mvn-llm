@@ -29,18 +29,12 @@ func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (*Node, 
 	inReactorSection := false
 	for i := start; i < len(lines); i++ {
 		line := lines[i]
-		if line == "[INFO] Reactor Build Order:" {
+		if isReactorHeader(line) {
 			inReactorSection = true
 		}
 		if inReactorSection {
 			// Stop at next phase boundary
-			if len(line) > 10 && line[:10] == "[INFO] ---" {
-				break
-			}
-			if len(line) > 30 && (strings.HasPrefix(line, "[INFO] ----------------------< ") || strings.HasPrefix(line, "[INFO] ------------------------< ")) {
-				break
-			}
-			if line == "[INFO] ------------------------------------------------------------------------" {
+			if isInitializationSeparator(line) || isBuildSeparator(line) {
 				break
 			}
 			// If line is not a valid [INFO] reactor line, stop here
@@ -56,7 +50,7 @@ func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (*Node, 
 		inReactorOrder := false
 		for i := start; i < end; i++ {
 			line := lines[i]
-			if line == "[INFO] Reactor Build Order:" {
+			if isReactorHeader(line) {
 				inReactorOrder = true
 				continue
 			}
