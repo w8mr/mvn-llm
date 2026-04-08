@@ -58,29 +58,26 @@ func isModuleSeparator(line string) bool {
 
 // Plugin/build block detection (prefix-based, fast)
 func isPluginHeader(line string) bool {
-	return strings.HasPrefix(line, "[INFO] --- ")
+	return PluginHeaderRegex.MatchString(line)
 }
 
 // Alias for clarity
-func isBuildBlockHeader(line string) bool { return isPluginHeader(line) }
+var isBuildBlockHeader = isPluginHeader
 
-// Separator detection (any dash line)
+// Long separator detection (full 70-dash line) - used for build block termination
+func isLongSeparator(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	return trimmed == "[INFO] ------------------------------------------------------------------------"
+}
+
+// Separator detection (any dash line) - for general use
 func isSeparator(line string) bool {
 	trimmed := strings.TrimSpace(line)
-	return trimmed == "[INFO] ------------------------------------------------------------------------" ||
-		strings.HasPrefix(trimmed, "[INFO] ----")
+	return trimmed == "[INFO] -------------------------------------------------------"
 }
 
 // Alias for compatibility
 var isBuildSeparator = isSeparator
-
-// Summary section detection
-func isSummary(line string) bool {
-	trimmed := strings.TrimSpace(line)
-	return trimmed == "[INFO] ------------------------------------------------------------------------" ||
-		ReactorSummaryForRegex.MatchString(trimmed) ||
-		strings.HasPrefix(trimmed, "[INFO] BUILD ")
-}
 
 // Empty line detection
 func isEmptyInfoLine(line string) bool {

@@ -15,19 +15,13 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool
 	if startIdx >= len(lines) {
 		return nil, 0, false
 	}
-	if !PluginHeaderRegex.MatchString(lines[startIdx]) {
+	if !isPluginHeader(lines[startIdx]) {
 		return nil, 0, false
 	}
 	start := startIdx
 	end := start + 1
 	for end < len(lines) {
-		if PluginHeaderRegex.MatchString(lines[end]) {
-			break
-		}
-		if isModuleHeader(lines[end]) {
-			break
-		}
-		if isBuildSeparator(lines[end]) {
+		if (isPluginHeader(lines[end]) || isModuleHeader(lines[end]) || isLongSeparator(lines[end])) {
 			break
 		}
 		end++

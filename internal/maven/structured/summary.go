@@ -27,7 +27,7 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bo
 	end := len(lines)
 	foundSummaryStart := false
 	for i := startIdx; i < len(lines); i++ {
-		if !foundSummaryStart && isBuildSeparator(lines[i]) {
+		if !foundSummaryStart && isLongSeparator(lines[i]) {
 			if i+1 < len(lines) && isReactorSummaryFor(lines[i+1]) {
 				start = i
 				foundSummaryStart = true
@@ -39,7 +39,7 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bo
 			continue
 		}
 		if foundSummaryStart && start != -1 {
-			var hasBuildStatus, hasTotalTime, hasFinishedAt, hasFinalSep bool
+			var hasBuildStatus, hasTotalTime, hasFinishedAt bool
 			for j := i; j < len(lines); j++ {
 				if !hasBuildStatus && (isBuildSuccess(lines[j]) || isBuildFailure(lines[j])) {
 					hasBuildStatus = true
@@ -50,16 +50,10 @@ func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bo
 				if hasTotalTime && !hasFinishedAt && isFinishedAt(lines[j]) {
 					hasFinishedAt = true
 				}
-				if hasFinishedAt && isBuildSeparator(lines[j]) {
-					end = j + 1
-					i = j
-					hasFinalSep = true
-					break
-				}
 			}
-			if hasBuildStatus && hasTotalTime && hasFinishedAt && hasFinalSep {
-				break
-			}
+			// Summary should capture everything until end of file
+			end = len(lines)
+			break
 		}
 	}
 	if start != -1 && end > start {

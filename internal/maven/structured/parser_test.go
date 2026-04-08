@@ -239,3 +239,51 @@ func TestParse_SummaryWithReactor(t *testing.T) {
 		}
 	}
 }
+
+func TestParse_SampleInstall(t *testing.T) {
+	repoRoot := testutil.FindRepoRoot()
+	filePath := filepath.Join(repoRoot, "testdata", "maven_output", "sample_install.txt")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("unable to read test data: %v", err)
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+
+	parsed := NewOutputParser().ParseOutput(lines)
+
+	moduleA := findChildByName(parsed.Root.Children, "module-a")
+	if moduleA == nil {
+		t.Fatal("Expected module-a node")
+	}
+
+	surefireBlock := findChildByName(moduleA.Children, "surefire")
+	if surefireBlock == nil {
+		t.Fatal("Expected surefire build-block inside module-a")
+	}
+
+	hasTestHeader := false
+	hasTestsRun := false
+	for _, line := range surefireBlock.Lines {
+		if strings.Contains(line, "T E S T S") {
+			hasTestHeader = true
+		}
+		if strings.Contains(line, "Tests run:") {
+			hasTestsRun = true
+		}
+	}
+	if !hasTestHeader {
+		t.Error("Expected surefire block to contain test header")
+	}
+	if !hasTestsRun {
+		t.Error("Expected surefire block to contain test results")
+	}
+}
+
+func findChildByName(children []Node, name string) *Node {
+	for _, c := range children {
+		if c.Name == name {
+			return &c
+		}
+	}
+	return nil
+}
