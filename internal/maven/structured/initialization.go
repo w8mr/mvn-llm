@@ -6,6 +6,11 @@ import "strings"
 // This includes the Reactor Build Order section listing all modules to be built.
 type InitializationPhaseParser struct{}
 
+// NodeType returns the node type this parser produces.
+func (p *InitializationPhaseParser) NodeType() string {
+	return "initialization"
+}
+
 // Parse attempts to parse initialization content starting at startIdx.
 // Only matches at startIdx=0 (initialization must be at the beginning).
 // Returns the parsed Node (with module list), number of lines consumed, and whether parsing succeeded.
@@ -21,13 +26,13 @@ func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (*Node, 
 
 	start := startIdx
 	end := startIdx
-	seenReactorHeader := false
+	inReactorSection := false
 	for i := start; i < len(lines); i++ {
 		line := lines[i]
 		if line == "[INFO] Reactor Build Order:" {
-			seenReactorHeader = true
+			inReactorSection = true
 		}
-		if seenReactorHeader {
+		if inReactorSection {
 			// Stop at next phase boundary
 			if len(line) > 10 && line[:10] == "[INFO] ---" {
 				break
@@ -43,8 +48,8 @@ func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (*Node, 
 			if !strings.HasPrefix(line, "[INFO]") {
 				break
 			}
+			end = i + 1
 		}
-		end = i + 1
 	}
 	if end > start {
 		var modules []map[string]string

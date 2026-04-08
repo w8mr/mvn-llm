@@ -8,6 +8,11 @@ import (
 // Each block represents a single plugin invocation with its output.
 type BuildPhaseParser struct{}
 
+// NodeType returns the node type this parser produces.
+func (p *BuildPhaseParser) NodeType() string {
+	return "build-block"
+}
+
 var pluginHeaderRegex = regexp.MustCompile(`^\[INFO\] --- [\w\-\.]+:\d+[\w\.]*:[\w\-]+( \([^)]+\))? @ [^ ]+ ---$`)
 var moduleArtifactSeparatorRegex = regexp.MustCompile(`^\[INFO\] [-]+< [^>]+ >[-]+$`)
 

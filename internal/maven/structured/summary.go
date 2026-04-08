@@ -9,6 +9,11 @@ import (
 // It extracts overall build status, total time, finish time, and per-module results.
 type SummaryPhaseParser struct{}
 
+// NodeType returns the node type this parser produces.
+func (p *SummaryPhaseParser) NodeType() string {
+	return "summary"
+}
+
 // Parse attempts to parse a summary block starting at startIdx.
 // Returns the parsed Node (with overall status, module results), number of lines consumed, and whether parsing succeeded.
 func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {

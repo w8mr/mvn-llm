@@ -6,6 +6,16 @@ import (
 	"reflect"
 )
 
+// contains checks if a slice contains a specific string.
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
 // OutputParser coordinates multiple phase parsers to build a hierarchical tree structure.
 // It maintains insertion-point tracking to ensure nodes are placed in valid parent positions
 // according to the AcceptanceMap rules.
@@ -109,20 +119,19 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	for idx < len(lines) {
 		matched := false
 
-		// Try all parsers
+		// Get valid child types for current insertion level
+		validTypes := AcceptanceMap[p.currentInsertionNode.Type]
+
+		// Only try parsers that can produce valid node types for current level
 		for _, parser := range p.Parsers {
-			node, consumed, ok := parser.Parse(lines, idx)
-			if ok {
-				// Try to insert at current level
-				if p.canInsert(node.Type) {
+			if contains(validTypes, parser.NodeType()) {
+				node, consumed, ok := parser.Parse(lines, idx)
+				if ok {
 					p.insertNode(*node)
-				} else {
-					// Cannot insert at current - bubble up to find a valid parent
-					p.bubbleUpAndInsert(&root, *node)
+					idx += consumed
+					matched = true
+					break
 				}
-				idx += consumed
-				matched = true
-				break
 			}
 		}
 

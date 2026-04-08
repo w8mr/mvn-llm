@@ -1,0 +1,9 @@
+[INFO] --- clean:3.2.0:clean (default-clean) @ module-a ---
+[INFO] 
+[INFO] ------------------------< com.example:module-a >------------------------
+[INFO] Building module-a 1.0-SNAPSHOT                                     [1/1]
+[INFO]   from module-a/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- install:3.1.4:install (default-install) @ module-a ---
+[INFO] Installing /path/to/some/output

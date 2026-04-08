@@ -10,6 +10,11 @@ import (
 // Build blocks within the module are handled by OutputParser's insertion-point tracking.
 type ModulePhaseParser struct{}
 
+// NodeType returns the node type this parser produces.
+func (p *ModulePhaseParser) NodeType() string {
+	return "module"
+}
+
 // Parse attempts to parse a module header starting at startIdx.
 // Returns the parsed Node (with metadata), number of lines consumed, and whether parsing succeeded.
 func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
