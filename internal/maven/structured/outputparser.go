@@ -43,20 +43,8 @@ func NewOutputParser() *OutputParser {
 // Returns true if insertion succeeded, false if no valid parent was found.
 // After insertion, if the node accepts children, the insertion point moves into it.
 func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) bool {
-	// Try current level first
-	if p.currentInsertionNode != nil && CanInsert(p.currentInsertionNode.Type, node.Type) {
-		node.Parent = p.currentInsertionNode
-		p.currentInsertionNode.Children = append(p.currentInsertionNode.Children, node)
-		// If inserted node accepts children, move into it; otherwise stay at parent
-		if len(AcceptanceMap[node.Type]) > 0 {
-			p.currentInsertionNode = &p.currentInsertionNode.Children[len(p.currentInsertionNode.Children)-1]
-		}
-		return true
-	}
-
-	// Bubble up via parent chain
-	for p.currentInsertionNode != nil && p.currentInsertionNode.Parent != nil {
-		p.currentInsertionNode = p.currentInsertionNode.Parent
+	// Try current level, then bubble up through parent chain
+	for p.currentInsertionNode != nil {
 		if CanInsert(p.currentInsertionNode.Type, node.Type) {
 			node.Parent = p.currentInsertionNode
 			p.currentInsertionNode.Children = append(p.currentInsertionNode.Children, node)
@@ -66,6 +54,8 @@ func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) bool {
 			}
 			return true
 		}
+		// Move to parent (loop will exit when we reach root with no parent)
+		p.currentInsertionNode = p.currentInsertionNode.Parent
 	}
 
 	// No valid parent found - return false to let caller handle
