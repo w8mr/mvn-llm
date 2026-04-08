@@ -1,0 +1,7 @@
+[INFO] ---------------------< com.ing.baker:baker-types >----------------------
+[INFO] Building Baker Types 5.1.0-SNAPSHOT                               [2/28]
+[INFO]   from core/baker-types/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ baker-types ---
+[INFO] Compiling 10 source files

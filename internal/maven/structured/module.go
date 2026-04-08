@@ -79,11 +79,19 @@ func findHeaderEnd(lines []string, startIdx int) int {
 
 	end := startIdx + 3
 
-	if end < len(lines) &&
-		strings.HasPrefix(lines[end], "[INFO] --------------------------------[") &&
-		strings.HasSuffix(lines[end], "]---------------------------------") {
-		if end+1 < len(lines) && strings.HasPrefix(lines[end+1], "[INFO] ") && strings.TrimSpace(lines[end+1][7:]) == "" {
-			end += 2
+	// Check for module separator line with any reasonable number of dashes
+	// e.g., "------------------------< ... >------------------------" or "---------------------< ... >----------------------"
+	if end < len(lines) {
+		sepLine := lines[end]
+		if strings.HasPrefix(sepLine, "[INFO] ") && strings.HasSuffix(sepLine, "---------------------------------") {
+			// Check that it has matching dash count on both sides (at least 20 dashes each side)
+			inner := sepLine[len("[INFO] "):]
+			dashCount := strings.Count(inner, "-")
+			if dashCount >= 40 { // At least 20 dashes on each side
+				if end+1 < len(lines) && strings.HasPrefix(lines[end+1], "[INFO] ") && strings.TrimSpace(lines[end+1][7:]) == "" {
+					end += 2
+				}
+			}
 		}
 	}
 
@@ -115,27 +123,44 @@ func extractModuleMetadata(headerLines []string) map[string]any {
 
 	l2 := headerLines[1][len("[INFO] "):]
 	var name, version string
-	if sp := strings.SplitN(l2, " ", 3); len(sp) == 3 && strings.HasPrefix(sp[0], "Building") {
-		toks := strings.SplitN(l2, " ", 4)
-		if len(toks) >= 3 {
-			name = toks[1]
-			version = toks[2]
+	if strings.HasPrefix(l2, "Building ") {
+		// Format: "Building <name> <version> [<moduleIndex>/<totalModules>]"
+		rest := strings.TrimPrefix(l2, "Building ")
+
+		// Find version by looking for patterns like -SNAPSHOT, -RELEASE, etc. or by finding [
+		versionEnd := strings.Index(rest, " [")
+		if versionEnd == -1 {
+			versionEnd = len(rest)
+		}
+
+		// Look for version pattern - last word before [ is typically version
+		words := strings.Fields(rest[:versionEnd])
+		if len(words) >= 2 {
+			version = words[len(words)-1]
+			name = strings.Join(words[:len(words)-1], " ")
+		} else if len(words) == 1 {
+			name = words[0]
+		}
+
+		if name != "" {
 			meta["name"] = name
+		}
+		if version != "" {
 			meta["version"] = version
-			if len(toks) == 4 {
-				idxBracket1 := strings.Index(toks[3], "[")
-				idxBracket2 := strings.Index(toks[3], "/")
-				idxBracket3 := strings.Index(toks[3], "]")
-				if idxBracket1 != -1 && idxBracket2 != -1 && idxBracket3 != -1 {
-					x := toks[3][idxBracket1+1 : idxBracket2]
-					y := toks[3][idxBracket2+1 : idxBracket3]
-					if xi, err := strconv.Atoi(strings.TrimSpace(x)); err == nil {
-						meta["moduleIndex"] = xi
-					}
-					if yi, err := strconv.Atoi(strings.TrimSpace(y)); err == nil {
-						meta["moduleCount"] = yi
-					}
-				}
+		}
+
+		// Extract module index from [x/y] if present
+		idxBracket1 := strings.Index(rest, "[")
+		idxBracket2 := strings.Index(rest, "/")
+		idxBracket3 := strings.Index(rest, "]")
+		if idxBracket1 != -1 && idxBracket2 != -1 && idxBracket3 != -1 {
+			x := rest[idxBracket1+1 : idxBracket2]
+			y := rest[idxBracket2+1 : idxBracket3]
+			if xi, err := strconv.Atoi(strings.TrimSpace(x)); err == nil {
+				meta["moduleIndex"] = xi
+			}
+			if yi, err := strconv.Atoi(strings.TrimSpace(y)); err == nil {
+				meta["moduleCount"] = yi
 			}
 		}
 	}
@@ -149,17 +174,25 @@ func extractModuleMetadata(headerLines []string) map[string]any {
 
 	for i := 3; i < len(headerLines); i++ {
 		l := headerLines[i]
-		if strings.HasPrefix(l, "[INFO] --------------------------------[") && strings.HasSuffix(l, "]---------------------------------") {
-			sepPrefix := "[INFO] --------------------------------["
-			start := strings.Index(l, sepPrefix)
-			if start != -1 {
-				left := start + len(sepPrefix)
-				right := strings.Index(l[left:], "]")
-				if right != -1 {
-					meta["packaging"] = strings.TrimSpace(l[left : left+right])
+		if strings.HasPrefix(l, "[INFO] ") && strings.HasSuffix(l, "---------------------------------") {
+			inner := l[len("[INFO] "):]
+			dashCount := strings.Count(inner, "-")
+			if dashCount >= 40 {
+				// Look for [packaging] pattern between two dash sequences
+				// Format: "[INFO] ----...----[ packaging ]----...----"
+				// The [ comes after the dashes, then packaging, then ]
+				bracketStart := strings.Index(inner, "[")
+				if bracketStart != -1 {
+					bracketEnd := strings.Index(inner[bracketStart:], "]")
+					if bracketEnd != -1 {
+						packaging := strings.TrimSpace(inner[bracketStart+1 : bracketStart+bracketEnd])
+						if packaging != "" {
+							meta["packaging"] = packaging
+						}
+					}
 				}
+				break
 			}
-			break
 		}
 	}
 

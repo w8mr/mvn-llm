@@ -62,3 +62,56 @@ func TestParse_UnparsablePhaseBlockBeforeModuleHeader(t *testing.T) {
 		t.Error("Expected module node")
 	}
 }
+
+func TestParse_ModuleHeaderWithAlternateDashes(t *testing.T) {
+	repoRoot := testutil.FindRepoRoot()
+	filePath := filepath.Join(repoRoot, "testdata", "module_header_alternate_dashes.txt")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("unable to read test data: %v", err)
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+
+	parsed := NewOutputParser().ParseOutput(lines)
+
+	t.Logf("Root children count: %d", len(parsed.Root.Children))
+	for i, child := range parsed.Root.Children {
+		t.Logf("Child %d: Type=%q, Name=%q, Lines=%d", i, child.Type, child.Name, len(child.Lines))
+	}
+
+	if len(parsed.Root.Children) != 1 {
+		t.Fatalf("Expected 1 child (module), got %d", len(parsed.Root.Children))
+	}
+
+	moduleNode := findChildByType(parsed.Root.Children, "module")
+	if moduleNode == nil {
+		t.Error("Expected module node")
+	} else {
+		if moduleNode.Name != "Baker Types" {
+			t.Errorf("Expected module name 'Baker Types', got %q", moduleNode.Name)
+		}
+		if packaging, ok := moduleNode.Meta["packaging"].(string); !ok || packaging != "jar" {
+			t.Errorf("Expected packaging 'jar', got %v", moduleNode.Meta["packaging"])
+		}
+		if groupId, ok := moduleNode.Meta["groupId"].(string); !ok || groupId != "com.ing.baker" {
+			t.Errorf("Expected groupId 'com.ing.baker', got %v", moduleNode.Meta["groupId"])
+		}
+		if artifactId, ok := moduleNode.Meta["artifactId"].(string); !ok || artifactId != "baker-types" {
+			t.Errorf("Expected artifactId 'baker-types', got %v", moduleNode.Meta["artifactId"])
+		}
+		if version, ok := moduleNode.Meta["version"].(string); !ok || version != "5.1.0-SNAPSHOT" {
+			t.Errorf("Expected version '5.1.0-SNAPSHOT', got %v", moduleNode.Meta["version"])
+		}
+		if moduleIndex, ok := moduleNode.Meta["moduleIndex"].(int); !ok || moduleIndex != 2 {
+			t.Errorf("Expected moduleIndex 2, got %v", moduleNode.Meta["moduleIndex"])
+		}
+		if moduleCount, ok := moduleNode.Meta["moduleCount"].(int); !ok || moduleCount != 28 {
+			t.Errorf("Expected moduleCount 28, got %v", moduleNode.Meta["moduleCount"])
+		}
+	}
+
+	buildBlockNode := findChildByType(moduleNode.Children, "build-block")
+	if buildBlockNode == nil {
+		t.Error("Expected build-block node inside module")
+	}
+}
