@@ -24,7 +24,7 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool
 		if PluginHeaderRegex.MatchString(lines[end]) {
 			break
 		}
-		if ModuleArtifactSeparatorRegex.MatchString(lines[end]) {
+		if isModuleHeader(lines[end]) {
 			break
 		}
 		if isBuildSeparator(lines[end]) {
