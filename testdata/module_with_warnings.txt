@@ -1,0 +1,15 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] module-a                                                         [jar]
+[INFO] 
+[INFO] ---------------------< com.example:module-a >----------------------
+[INFO] Building module-a 1.0.0                                          [1/1]
+[INFO]   from module-a/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[WARNING] Some warning here
+[WARNING] Another warning
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ module-a ---
+[INFO] Deleting /path/target

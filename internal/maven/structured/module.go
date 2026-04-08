@@ -95,7 +95,14 @@ func findHeaderEnd(lines []string, startIdx int) int {
 		}
 	}
 
-	for end < len(lines) && strings.HasPrefix(lines[end], "[INFO] ") && strings.TrimSpace(lines[end][7:]) == "" {
+	// After the standard header lines, keep reading until we hit a build block line
+	for end < len(lines) {
+		line := lines[end]
+		// Stop at build block header (e.g., "[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ module-name ---")
+		if isPluginHeader(line) {
+			break
+		}
+		// Include any other line in the header
 		end++
 	}
 

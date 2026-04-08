@@ -171,3 +171,41 @@ func TestParse_TwoModules(t *testing.T) {
 		}
 	}
 }
+
+func TestParse_ModuleWithWarnings(t *testing.T) {
+	repoRoot := testutil.FindRepoRoot()
+	filePath := filepath.Join(repoRoot, "testdata", "module_with_warnings.txt")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("unable to read test data: %v", err)
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+
+	parsed := NewOutputParser().ParseOutput(lines)
+
+	t.Logf("Root children count: %d", len(parsed.Root.Children))
+	for i, child := range parsed.Root.Children {
+		t.Logf("Child %d: Type=%q, Name=%q, Lines=%d", i, child.Type, child.Name, len(child.Lines))
+	}
+
+	moduleNode := findChildByType(parsed.Root.Children, "module")
+	if moduleNode == nil {
+		t.Error("Expected module node")
+	} else {
+		t.Logf("Module lines: %v", moduleNode.Lines)
+		if !strings.Contains(moduleNode.Lines[0], "module-a") {
+			t.Errorf("Expected module header to contain module-a, got: %s", moduleNode.Lines[0])
+		}
+		// Check that warnings are included in module header
+		hasWarnings := false
+		for _, line := range moduleNode.Lines {
+			if strings.Contains(line, "[WARNING]") {
+				hasWarnings = true
+				break
+			}
+		}
+		if !hasWarnings {
+			t.Error("Expected module header to include warnings")
+		}
+	}
+}
