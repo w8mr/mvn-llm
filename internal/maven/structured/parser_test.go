@@ -2,14 +2,19 @@ package structured
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
+import "github.com/agentic-ai/mvn-llm/internal/testutil"
+
 func parseTestFile(filename string) *StructuredOutput {
-	data, err := os.ReadFile("../testdata/" + filename)
+	repoRoot := testutil.FindRepoRoot()
+	filePath := filepath.Join(repoRoot, "testdata", "maven_output", filename)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		panic("unable to read test data: " + filename)
+		panic("unable to read test data: " + filePath)
 	}
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 	return NewOutputParser().ParseOutput(lines)

@@ -10,9 +10,12 @@ import (
 	"github.com/agentic-ai/mvn-llm/internal/maven"
 )
 
+import "github.com/agentic-ai/mvn-llm/internal/testutil"
+
 func readTestFile(t *testing.T, filename string) string {
 	t.Helper()
-	path := filepath.Join("..", "..", "internal", "maven", "testdata", filename)
+	repoRoot := testutil.FindRepoRoot()
+	path := filepath.Join(repoRoot, "testdata", "maven_output", filename)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("Failed to read test file %s: %v", filename, err)
