@@ -33,6 +33,36 @@ func (p *BuildPhaseParser) ExtractLines(lines []string, startIdx int) ([]string,
 	return lines[start:end], end - startIdx, true
 }
 
+// ExtractSummary extracts a summary line from the found lines.
+// Priority: last ERROR line → last WARNING line → last INFO line.
+// Format: "Successful: <line>" or "Failure: <line>"
+func (p *BuildPhaseParser) ExtractSummary(found []string) string {
+	var lastError, lastWarning, lastInfo string
+
+	for _, l := range found {
+		if len(l) == 0 {
+			continue
+		}
+		if l[0] == '[' {
+			if len(l) > 8 && l[:8] == "[ERROR] " {
+				lastError = l[8:]
+			} else if len(l) > 10 && l[:10] == "[WARNING] " {
+				lastWarning = l[10:]
+			} else if len(l) > 6 && l[:6] == "[INFO] " {
+				lastInfo = l[6:]
+			}
+		}
+	}
+
+	if lastError != "" {
+		return "Failure: " + lastError
+	}
+	if lastWarning != "" {
+		return "Successful: " + lastWarning
+	}
+	return "Successful: " + lastInfo
+}
+
 // ParseMetaData extracts metadata from the found lines.
 func (p *BuildPhaseParser) ParseMetaData(found []string) map[string]any {
 	if len(found) == 0 {
@@ -68,7 +98,10 @@ func (p *BuildPhaseParser) ParseMetaData(found []string) map[string]any {
 		artifactId = m[6]
 	}
 
-	meta := map[string]any{"status": status}
+	meta := map[string]any{
+		"status":  status,
+		"summary": p.ExtractSummary(found),
+	}
 	if plugin != "" {
 		meta["plugin"] = plugin
 		meta["version"] = version
