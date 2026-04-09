@@ -46,6 +46,7 @@ func CanInsert(parentType, childType string) bool {
 
 // TextSummary generates a text summary from the structured output.
 // Per module: if WARNING join all warnings, else take last build phase with that status.
+// On FAILURE, only show modules with errors (not successful modules).
 func TextSummary(out *StructuredOutput) string {
 	var moduleErrs, moduleWarnSucc []string
 	overallStatus := "SUCCESS"
@@ -62,26 +63,29 @@ func TextSummary(out *StructuredOutput) string {
 			if overallStatus != "FAILURE" {
 				overallStatus = "FAILURE"
 			}
-			moduleErrs = append(moduleErrs, moduleName+": "+summary)
+			moduleErrs = append(moduleErrs, moduleName+":\n"+summary)
 		} else if status == "SUCCESS-WITH-WARNINGS" {
 			if overallStatus == "SUCCESS" {
 				overallStatus = "SUCCESS-WITH-WARNINGS"
 			}
-			moduleWarnSucc = append(moduleWarnSucc, moduleName+": "+summary)
+			moduleWarnSucc = append(moduleWarnSucc, moduleName+":\n"+summary)
 		} else {
-			moduleWarnSucc = append(moduleWarnSucc, moduleName+": "+summary)
+			moduleWarnSucc = append(moduleWarnSucc, moduleName+":\n"+summary)
 		}
 	}
 
 	var lines []string
-	if len(moduleErrs) > 0 && len(moduleWarnSucc) > 0 {
-		lines = append(lines, moduleNamePrefix(moduleErrs)...)
+	// On FAILURE, only show modules with errors
+	if overallStatus == "FAILURE" {
+		lines = append(lines, moduleErrs...)
+	} else if len(moduleErrs) > 0 && len(moduleWarnSucc) > 0 {
+		lines = append(lines, moduleErrs...)
 		lines = append(lines, "")
-		lines = append(lines, moduleNamePrefix(moduleWarnSucc)...)
+		lines = append(lines, moduleWarnSucc...)
 	} else if len(moduleErrs) > 0 {
-		lines = append(lines, moduleNamePrefix(moduleErrs)...)
+		lines = append(lines, moduleErrs...)
 	} else {
-		lines = append(lines, moduleNamePrefix(moduleWarnSucc)...)
+		lines = append(lines, moduleWarnSucc...)
 	}
 
 	if overallStatus == "FAILURE" {

@@ -15,7 +15,7 @@ func runTextSummaryFromMaven(t *testing.T, mavenOutput, expectedSummary string) 
 	out := parser.ParseOutput(lines, nil, ParseConfig{})
 	result := TextSummary(out)
 	if result != expectedSummary {
-		t.Errorf("Expected:\n%s\nGot:\n%s", expectedSummary, result)
+		t.Errorf("Expected:\n%q\nGot:\n%q", expectedSummary, result)
 	}
 }
 
