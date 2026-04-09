@@ -147,15 +147,23 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 
 // ParseOutput parses Maven log lines into a StructuredOutput with a hierarchical Node tree.
 // This is the main entry point for parsing Maven output.
-func (p *OutputParser) ParseOutput(lines []string) *StructuredOutput {
-	return p.ParseOutputStrict(lines, false)
+func (p *OutputParser) ParseOutput(lines []string, err error) *StructuredOutput {
+	return p.ParseOutputStrict(lines, false, err)
 }
 
 // ParseOutputStrict parses Maven log lines and optionally verifies no lines were lost.
 // If strict=true, it compares original and parsed lines; on mismatch, it prints an error
 // and exits. Use strict mode for debugging parsing issues.
-func (p *OutputParser) ParseOutputStrict(lines []string, strict bool) *StructuredOutput {
+// If err is not nil, it is added to the root meta as "error".
+func (p *OutputParser) ParseOutputStrict(lines []string, strict bool, err error) *StructuredOutput {
 	root, _, ok := p.Parse(lines, 0)
+
+	if err != nil {
+		if root.Meta == nil {
+			root.Meta = make(map[string]any)
+		}
+		root.Meta["error"] = err.Error()
+	}
 
 	if strict && ok {
 		collected := collectAllLines(root)

@@ -28,7 +28,7 @@ func TestParse_UnparsablePhaseBlockBeforeModuleHeader(t *testing.T) {
 	}
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	parsed := NewOutputParser().ParseOutput(lines)
+	parsed := NewOutputParser().ParseOutput(lines, nil)
 
 	t.Logf("Root children count: %d", len(parsed.Root.Children))
 	for i, child := range parsed.Root.Children {
@@ -72,7 +72,7 @@ func TestParse_ModuleHeaderWithAlternateDashes(t *testing.T) {
 	}
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	parsed := NewOutputParser().ParseOutput(lines)
+	parsed := NewOutputParser().ParseOutput(lines, nil)
 
 	t.Logf("Root children count: %d", len(parsed.Root.Children))
 	for i, child := range parsed.Root.Children {
@@ -125,7 +125,7 @@ func TestParse_TwoModules(t *testing.T) {
 	}
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	parsed := NewOutputParser().ParseOutput(lines)
+	parsed := NewOutputParser().ParseOutput(lines, nil)
 
 	t.Logf("Root children count: %d", len(parsed.Root.Children))
 	for i, child := range parsed.Root.Children {
@@ -181,7 +181,7 @@ func TestParse_ModuleWithWarnings(t *testing.T) {
 	}
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	parsed := NewOutputParser().ParseOutput(lines)
+	parsed := NewOutputParser().ParseOutput(lines, nil)
 
 	t.Logf("Root children count: %d", len(parsed.Root.Children))
 	for i, child := range parsed.Root.Children {
@@ -219,7 +219,7 @@ func TestParse_SummaryWithReactor(t *testing.T) {
 	}
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	parsed := NewOutputParser().ParseOutput(lines)
+	parsed := NewOutputParser().ParseOutput(lines, nil)
 
 	t.Logf("Root children count: %d", len(parsed.Root.Children))
 	for i, child := range parsed.Root.Children {
@@ -249,7 +249,7 @@ func TestParse_SampleInstall(t *testing.T) {
 	}
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	parsed := NewOutputParser().ParseOutput(lines)
+	parsed := NewOutputParser().ParseOutput(lines, nil)
 
 	moduleA := findChildByName(parsed.Root.Children, "module-a")
 	if moduleA == nil {

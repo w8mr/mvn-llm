@@ -91,13 +91,7 @@ func mainLogic() {
 		if outType == "structured-json" {
 			if outStr, ok := mvnOut.(string); ok {
 				parser := structured.NewOutputParser()
-				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict)
-				if mvnErr != nil {
-					if structuredOut.Root.Meta == nil {
-						structuredOut.Root.Meta = make(map[string]any)
-					}
-					structuredOut.Root.Meta["error"] = mvnErr.Error()
-				}
+				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict, mvnErr)
 				jsonBytes, err := marshalStructuredJSON(structuredOut)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Failed to encode structured JSON: %v\n", err)
@@ -118,13 +112,7 @@ func mainLogic() {
 		if outType == "json" {
 			if outStr, ok := mvnOut.(string); ok {
 				parser := structured.NewOutputParser()
-				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict)
-				if mvnErr != nil {
-					if structuredOut.Root.Meta == nil {
-						structuredOut.Root.Meta = make(map[string]any)
-					}
-					structuredOut.Root.Meta["error"] = mvnErr.Error()
-				}
+				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict, mvnErr)
 				jsonBytes, err := marshalStructuredJSON(structuredOut)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Failed to encode JSON: %v\n", err)
