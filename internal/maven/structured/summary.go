@@ -7,11 +7,23 @@ import (
 
 // SummaryPhaseParser parses the Maven build summary section at the end of the log.
 // It extracts overall build status, total time, finish time, and per-module results.
-type SummaryPhaseParser struct{}
+type SummaryPhaseParser struct {
+	BaseParser
+}
 
 // NodeType returns the node type this parser produces.
 func (p *SummaryPhaseParser) NodeType() string {
 	return "summary"
+}
+
+// ExtractLines - summary has complex boundaries, keeping existing Parse for now.
+func (p *SummaryPhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
+	return nil, 0, false // Uses existing Parse
+}
+
+// ParseMetaData - summary has complex boundaries, keeping existing Parse for now.
+func (p *SummaryPhaseParser) ParseMetaData(found []string) map[string]any {
+	return nil
 }
 
 // Parse attempts to parse a summary block starting at startIdx.

@@ -8,22 +8,21 @@ import (
 // ModulePhaseParser parses Maven module headers (e.g., [INFO] --- module-a <artifact:version> ---).
 // It extracts module metadata and returns a node representing the module container.
 // Build blocks within the module are handled by OutputParser's insertion-point tracking.
-type ModulePhaseParser struct{}
+type ModulePhaseParser struct {
+	BaseParser
+}
 
 // NodeType returns the node type this parser produces.
 func (p *ModulePhaseParser) NodeType() string {
 	return "module"
 }
 
-// Parse attempts to parse a module header starting at startIdx.
-// Returns the parsed Node (with metadata), number of lines consumed, and whether parsing succeeded.
-func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
+// ExtractLines finds one module header starting at startIdx.
+func (p *ModulePhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
 	if startIdx >= len(lines) {
 		return nil, 0, false
 	}
-	line := lines[startIdx]
-	isMH := isModuleHeader(line)
-	if !isMH {
+	if !isModuleHeader(lines[startIdx]) {
 		return nil, 0, false
 	}
 
@@ -32,24 +31,33 @@ func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, boo
 		return nil, 0, false
 	}
 
-	meta := extractModuleMetadata(lines[startIdx:headerEnd])
+	return lines[startIdx:headerEnd], headerEnd - startIdx, true
+}
+
+// ParseMetaData extracts metadata from the found lines.
+func (p *ModulePhaseParser) ParseMetaData(found []string) map[string]any {
+	return extractModuleMetadata(found)
+}
+
+// Parse combines ExtractLines and ParseMetaData for backward compatibility.
+func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
+	found, consumed, ok := p.ExtractLines(lines, startIdx)
+	if !ok {
+		return nil, 0, false
+	}
+	meta := p.ParseMetaData(found)
 	moduleName := "module"
 	if n, ok := meta["name"].(string); ok {
 		moduleName = n
 	}
-
 	node := &Node{
 		Name:     moduleName,
 		Type:     "module",
-		Lines:    lines[startIdx:headerEnd],
+		Lines:    found,
 		Meta:     meta,
 		Children: []Node{},
 	}
-
-	// Build-phase parsing is now handled by OutputParser's insertion-point tracking
-	// This returns only the module header, OutputParser handles children insertion
-
-	return node, headerEnd - startIdx, true
+	return node, consumed, true
 }
 
 func findHeaderEnd(lines []string, startIdx int) int {

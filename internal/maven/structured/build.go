@@ -2,16 +2,17 @@ package structured
 
 // BuildPhaseParser parses Maven plugin execution blocks (e.g., [INFO] --- maven-compiler-plugin:3.11.0:compile @ my-app ---).
 // Each block represents a single plugin invocation with its output.
-type BuildPhaseParser struct{}
+type BuildPhaseParser struct {
+	BaseParser
+}
 
 // NodeType returns the node type this parser produces.
 func (p *BuildPhaseParser) NodeType() string {
 	return "build-block"
 }
 
-// Parse attempts to parse a build phase block starting at startIdx.
-// Returns the parsed Node, number of lines consumed, and whether parsing succeeded.
-func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
+// ExtractLines finds one build block starting at startIdx.
+func (p *BuildPhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
 	if startIdx >= len(lines) {
 		return nil, 0, false
 	}
@@ -21,7 +22,7 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool
 	start := startIdx
 	end := start + 1
 	for end < len(lines) {
-		if (isPluginHeader(lines[end]) || isModuleHeader(lines[end]) || isLongSeparator(lines[end])) {
+		if isPluginHeader(lines[end]) || isModuleHeader(lines[end]) || isLongSeparator(lines[end]) {
 			break
 		}
 		end++
@@ -29,21 +30,28 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool
 	for end < len(lines) && isEmptyInfoLine(lines[end]) {
 		end++
 	}
+	return lines[start:end], end - startIdx, true
+}
+
+// ParseMetaData extracts metadata from the found lines.
+func (p *BuildPhaseParser) ParseMetaData(found []string) map[string]any {
+	if len(found) == 0 {
+		return nil
+	}
+
 	status := "SUCCESS"
-	for _, l := range lines[start:end] {
-		if len(l) > 0 {
-			if l[0] == '[' {
-				if len(l) > 8 && l[:8] == "[ERROR] " {
-					status = "FAILED"
-					break
-				} else if len(l) > 10 && l[:10] == "[WARNING] " && status != "FAILED" {
-					status = "SUCCESS-WITH-WARNINGS"
-				}
+	for _, l := range found {
+		if len(l) > 0 && l[0] == '[' {
+			if len(l) > 8 && l[:8] == "[ERROR] " {
+				status = "FAILED"
+				break
+			} else if len(l) > 10 && l[:10] == "[WARNING] " && status != "FAILED" {
+				status = "SUCCESS-WITH-WARNINGS"
 			}
 		}
 	}
 
-	header := lines[start]
+	header := found[0]
 	plugin := ""
 	version := ""
 	goal := ""
@@ -71,12 +79,21 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool
 		}
 	}
 
+	return meta
+}
+
+// Parse combines ExtractLines and ParseMetaData for backward compatibility.
+func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
+	found, consumed, ok := p.ExtractLines(lines, startIdx)
+	if !ok {
+		return nil, 0, false
+	}
+	meta := p.ParseMetaData(found)
 	node := &Node{
-		Name:  plugin,
+		Name:  meta["plugin"].(string),
 		Type:  "build-block",
-		Lines: lines[start:end],
+		Lines: found,
 		Meta:  meta,
 	}
-
-	return node, end - startIdx, true
+	return node, consumed, true
 }
