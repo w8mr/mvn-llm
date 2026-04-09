@@ -1,6 +1,7 @@
 package structured
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -73,6 +74,155 @@ func TestTextSummary_WithWarnings(t *testing.T) {
 [INFO] ------------------------------------------------------------------------`
 
 	runTextSummaryFromMaven(t, mavenOutput, "Successful:\nmy-app:\nsystem modules path not set in conjunction with -source 11")
+}
+
+func TestTextSummary_WithWarningsJSON(t *testing.T) {
+	mavenOutput := `[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] my-app                                                       [jar]
+[INFO] 
+[INFO] ---< com.example:my-app >---
+[INFO] Building my-app 1.0-SNAPSHOT                                   [1/1]
+[INFO]   from myapp/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ my-app ---
+[INFO] Compiling 1 source file
+[WARNING] system modules path not set in conjunction with -source 11
+[INFO] Successfully compiled 1 source file
+[INFO]
+[INFO] --- jar:3.5.0:jar (default-jar) @ my-app ---
+[INFO] Building jar: target/my-app.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO] my-app ....................................... SUCCESS [  1.234 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------`
+
+	lines := strings.Split(strings.ReplaceAll(mavenOutput, "\r\n", "\n"), "\n")
+	parser := NewOutputParser()
+	out := parser.ParseOutput(lines, nil, ParseConfig{})
+
+	jsonBytes, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		t.Fatalf("Failed to marshal JSON: %v", err)
+	}
+	expected := `{
+  "root": {
+    "name": "maven-build",
+    "type": "root",
+    "children": [
+      {
+        "name": "initialization",
+        "type": "initialization",
+        "lines": [
+          "[INFO] Scanning for projects...",
+          "[INFO] ------------------------------------------------------------------------",
+          "[INFO] Reactor Build Order:",
+          "[INFO] ",
+          "[INFO] my-app                                                       [jar]",
+          "[INFO] "
+        ],
+        "meta": {
+          "modules": [
+            {
+              "module": "my-app",
+              "packaging": "jar"
+            }
+          ]
+        }
+      },
+      {
+        "name": "my-app",
+        "type": "module",
+        "lines": [
+          "[INFO] ---\u003c com.example:my-app \u003e---",
+          "[INFO] Building my-app 1.0-SNAPSHOT                                   [1/1]",
+          "[INFO]   from myapp/pom.xml",
+          "[INFO] --------------------------------[ jar ]---------------------------------",
+          "[INFO] "
+        ],
+        "meta": {
+          "artifactId": "my-app",
+          "groupId": "com.example",
+          "moduleCount": 1,
+          "moduleIndex": 1,
+          "name": "my-app",
+          "packaging": "jar",
+          "pomFile": "myapp/pom.xml",
+          "version": "1.0-SNAPSHOT"
+        },
+        "children": [
+          {
+            "name": "compiler",
+            "type": "build-block",
+            "lines": [
+              "[INFO] --- compiler:3.15.0:compile (default-compile) @ my-app ---",
+              "[INFO] Compiling 1 source file",
+              "[WARNING] system modules path not set in conjunction with -source 11",
+              "[INFO] Successfully compiled 1 source file",
+              "[INFO]"
+            ],
+            "meta": {
+              "artifactId": "my-app",
+              "executionId": "default-compile",
+              "goal": "compile",
+              "plugin": "compiler",
+              "status": "SUCCESS-WITH-WARNINGS",
+              "summary": "Successful: system modules path not set in conjunction with -source 11",
+              "version": "3.15.0"
+            }
+          },
+          {
+            "name": "jar",
+            "type": "build-block",
+            "lines": [
+              "[INFO] --- jar:3.5.0:jar (default-jar) @ my-app ---",
+              "[INFO] Building jar: target/my-app.jar"
+            ],
+            "meta": {
+              "artifactId": "my-app",
+              "executionId": "default-jar",
+              "goal": "jar",
+              "plugin": "jar",
+              "status": "SUCCESS",
+              "summary": "Successful: Building jar: target/my-app.jar",
+              "version": "3.5.0"
+            }
+          }
+        ]
+      },
+      {
+        "name": "summary",
+        "type": "summary",
+        "lines": [
+          "[INFO] ------------------------------------------------------------------------",
+          "[INFO] Reactor Summary:",
+          "[INFO] my-app ....................................... SUCCESS [  1.234 s]",
+          "[INFO] ------------------------------------------------------------------------",
+          "[INFO] BUILD SUCCESS",
+          "[INFO] ------------------------------------------------------------------------"
+        ],
+        "meta": {
+          "modules": [
+            {
+              "name": "my-app",
+              "status": "SUCCESS",
+              "time": "1.234 s"
+            }
+          ],
+          "overallStatus": "BUILD SUCCESS"
+        }
+      }
+    ]
+  }
+}`
+	if string(jsonBytes) != expected {
+		t.Errorf("Expected:\n%s\nGot:\n%s", expected, string(jsonBytes))
+	}
 }
 
 func TestTextSummary_WithErrors(t *testing.T) {
