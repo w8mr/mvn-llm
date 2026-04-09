@@ -41,7 +41,7 @@ func mainLogic() {
 	projectRoot := flag.String("project-root", ".", "Project root directory")
 	noClean := flag.Bool("no-clean", false, "Skip mvn clean before build")
 	resumeFrom := flag.String("rf", "", "Resume build from specified module")
-	output := flag.String("o", "structured-json", "Output format(s): comma-separated list of text, json, structured-json, maven-output")
+	output := flag.String("o", "json-full-with-lines", "Output format(s): comma-separated list of text, json, json-full-with-lines, maven-output")
 	depFilter := flag.String("dep-filter", "", "Filter dependencies (e.g., 'junit')")
 	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
 	depVerbose := flag.Bool("dep-verbose", false, "Show verbose dependency tree")
@@ -79,7 +79,7 @@ func mainLogic() {
 				fmt.Print(mvnErr)
 			}
 		}
-		if outType == "structured-json" {
+		if outType == "json-full-with-lines" {
 			if outStr, ok := mvnOut.(string); ok {
 				parser := structured.NewOutputParser()
 				structuredOut := parser.ParseOutput(splitLines(outStr), mvnErr, parseConfig)
