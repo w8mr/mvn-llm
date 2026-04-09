@@ -303,7 +303,7 @@ func TestBuildPhaseParser_ExtractSummary(t *testing.T) {
 				"[INFO] Compiling 1 source file",
 				"[INFO] ",
 			},
-			expected: "Successful: Compiling 1 source file",
+			expected: "Compiling 1 source file",
 		},
 		{
 			name: "last warning line",
@@ -312,7 +312,7 @@ func TestBuildPhaseParser_ExtractSummary(t *testing.T) {
 				"[WARNING] Some warning",
 				"[INFO] Compiling 1 source file",
 			},
-			expected: "Successful: Some warning",
+			expected: "Some warning",
 		},
 		{
 			name: "last error line",
@@ -321,7 +321,7 @@ func TestBuildPhaseParser_ExtractSummary(t *testing.T) {
 				"[INFO] Something failed",
 				"[ERROR] Compilation failure",
 			},
-			expected: "Failure: Compilation failure",
+			expected: "Compilation failure",
 		},
 		{
 			name:     "empty content",

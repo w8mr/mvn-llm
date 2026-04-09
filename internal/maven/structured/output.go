@@ -118,13 +118,6 @@ func moduleSummary(children []Node, moduleName string) (status, summary string) 
 		st, _ := meta["status"].(string)
 		sm, _ := meta["summary"].(string)
 
-		// Clean prefix
-		if strings.HasPrefix(sm, "Successful: ") {
-			sm = sm[12:]
-		} else if strings.HasPrefix(sm, "Failure: ") {
-			sm = sm[9:]
-		}
-
 		if st == "FAILED" {
 			errs = append(errs, sm)
 		} else if st == "SUCCESS-WITH-WARNINGS" {
@@ -142,19 +135,4 @@ func moduleSummary(children []Node, moduleName string) (status, summary string) 
 		return "SUCCESS-WITH-WARNINGS", lastWarn
 	}
 	return "SUCCESS", lastSucc
-}
-
-func moduleNamePrefix(lines []string) []string {
-	if len(lines) == 0 {
-		return nil
-	}
-	var result []string
-	for i, line := range lines {
-		if i == 0 {
-			result = append(result, line)
-		} else {
-			result = append(result, "  "+line)
-		}
-	}
-	return result
 }

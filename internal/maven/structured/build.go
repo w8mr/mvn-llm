@@ -62,13 +62,13 @@ func (p *BuildPhaseParser) ExtractSummary(found []string) string {
 	}
 
 	if lastError != "" {
-		return "Failure: " + lastError
+		return lastError
 	}
 	if lastWarning != "" {
-		return "Successful: " + lastWarning
+		return lastWarning
 	}
 	if lastInfo != "" {
-		return "Successful: " + lastInfo
+		return lastInfo
 	}
 	return "Successful"
 }

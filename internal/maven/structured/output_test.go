@@ -172,7 +172,7 @@ func TestJSONSummary_WithWarnings(t *testing.T) {
               "goal": "compile",
               "plugin": "compiler",
               "status": "SUCCESS-WITH-WARNINGS",
-              "summary": "Successful: system modules path not set in conjunction with -source 11",
+              "summary": "system modules path not set in conjunction with -source 11",
               "version": "3.15.0"
             }
           },
@@ -189,7 +189,7 @@ func TestJSONSummary_WithWarnings(t *testing.T) {
               "goal": "jar",
               "plugin": "jar",
               "status": "SUCCESS",
-              "summary": "Successful: Building jar: target/my-app.jar",
+              "summary": "Building jar: target/my-app.jar",
               "version": "3.5.0"
             }
           }
@@ -444,7 +444,7 @@ func TestJSONSummary_MultipleModulesMultipleErrors(t *testing.T) {
               "goal": "clean",
               "plugin": "clean",
               "status": "FAILED",
-              "summary": "Failure: Error in module-a",
+              "summary": "Error in module-a",
               "version": "3.2.0"
             }
           },
@@ -462,7 +462,7 @@ func TestJSONSummary_MultipleModulesMultipleErrors(t *testing.T) {
               "goal": "compile",
               "plugin": "compiler",
               "status": "FAILED",
-              "summary": "Failure: Another error",
+              "summary": "Another error",
               "version": "3.15.0"
             }
           }
@@ -519,7 +519,7 @@ func TestJSONSummary_MultipleModulesMultipleErrors(t *testing.T) {
               "goal": "compile",
               "plugin": "compiler",
               "status": "FAILED",
-              "summary": "Failure: Error in module-b",
+              "summary": "Error in module-b",
               "version": "3.15.0"
             }
           }
