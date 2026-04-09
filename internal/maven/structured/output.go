@@ -1,5 +1,7 @@
 package structured
 
+import "strings"
+
 // Node represents a parsed section of Maven log output.
 // It forms a tree structure where each node may have children.
 // Parent is a back-reference for traversal (not serialized).
@@ -40,4 +42,102 @@ func CanInsert(parentType, childType string) bool {
 		}
 	}
 	return false
+}
+
+// TextSummary generates a text summary from the structured output.
+// Per module: if WARNING join all warnings, else take last build phase with that status.
+func TextSummary(out *StructuredOutput) string {
+	var moduleErrs, moduleWarnSucc []string
+	overallStatus := "SUCCESS"
+
+	for _, child := range out.Root.Children {
+		if child.Type != "module" {
+			continue
+		}
+
+		moduleName := child.Name
+		status, summary := moduleSummary(child.Children, moduleName)
+
+		if status == "FAILED" {
+			if overallStatus != "FAILURE" {
+				overallStatus = "FAILURE"
+			}
+			moduleErrs = append(moduleErrs, moduleName+": "+summary)
+		} else if status == "SUCCESS-WITH-WARNINGS" {
+			if overallStatus == "SUCCESS" {
+				overallStatus = "SUCCESS-WITH-WARNINGS"
+			}
+			moduleWarnSucc = append(moduleWarnSucc, moduleName+": "+summary)
+		} else {
+			moduleWarnSucc = append(moduleWarnSucc, moduleName+": "+summary)
+		}
+	}
+
+	var lines []string
+	if len(moduleErrs) > 0 {
+		lines = append(lines, moduleNamePrefix(moduleErrs)...)
+		lines = append(lines, "")
+		lines = append(lines, moduleNamePrefix(moduleWarnSucc)...)
+	} else {
+		lines = append(lines, moduleNamePrefix(moduleWarnSucc)...)
+	}
+
+	if overallStatus == "FAILURE" {
+		return "Failure:\n" + strings.Join(lines, "\n")
+	}
+	return "Successful:\n" + strings.Join(lines, "\n")
+}
+
+// moduleSummary returns status and summary for a module.
+// - If any FAILED: take last FAILED
+// - Else if any SUCCESS-WITH-WARNINGS: take last SUCCESS-WITH-WARNINGS
+// - Else take last SUCCESS
+func moduleSummary(children []Node, moduleName string) (status, summary string) {
+	var lastErr, lastWarn, lastSucc string
+	for _, child := range children {
+		if child.Type != "build-block" {
+			continue
+		}
+		meta := child.Meta
+		st, _ := meta["status"].(string)
+		sm, _ := meta["summary"].(string)
+
+		// Clean prefix
+		if strings.HasPrefix(sm, "Successful: ") {
+			sm = sm[12:]
+		} else if strings.HasPrefix(sm, "Failure: ") {
+			sm = sm[9:]
+		}
+
+		if st == "FAILED" {
+			lastErr = sm
+		} else if st == "SUCCESS-WITH-WARNINGS" {
+			lastWarn = sm
+		} else {
+			lastSucc = sm
+		}
+	}
+
+	if lastErr != "" {
+		return "FAILED", lastErr
+	}
+	if lastWarn != "" {
+		return "SUCCESS-WITH-WARNINGS", lastWarn
+	}
+	return "SUCCESS", lastSucc
+}
+
+func moduleNamePrefix(lines []string) []string {
+	if len(lines) == 0 {
+		return nil
+	}
+	var result []string
+	for i, line := range lines {
+		if i == 0 {
+			result = append(result, line)
+		} else {
+			result = append(result, "  "+line)
+		}
+	}
+	return result
 }

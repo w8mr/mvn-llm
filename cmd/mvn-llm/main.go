@@ -98,7 +98,10 @@ func mainLogic() {
 		}
 		if outType == "text" {
 			if outStr, ok := mvnOut.(string); ok {
-				fmt.Println(outStr)
+				parser := structured.NewOutputParser()
+				structuredOut := parser.ParseOutput(splitLines(outStr), mvnErr, parseConfig)
+				summary := structured.TextSummary(structuredOut)
+				fmt.Println(summary)
 			}
 		}
 		if outType == "json" || outType == "json-full" {
