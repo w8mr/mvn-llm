@@ -2,6 +2,7 @@ package structured
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/agentic-ai/mvn-llm/internal/errors"
 )
@@ -173,7 +174,45 @@ func (p *OutputParser) ParseOutput(lines []string, err error, config ParseConfig
 		}
 	}
 
+	enrichModuleMeta(root)
+	enrichSummaryMeta(root)
+
 	return &StructuredOutput{Root: *root}
+}
+
+// enrichModuleMeta adds status and summary to each module node from its children.
+func enrichModuleMeta(node *Node) {
+	for i := range node.Children {
+		if node.Children[i].Type != "module" {
+			continue
+		}
+		moduleName := node.Children[i].Name
+		status, summary := moduleSummary(node.Children[i].Children, moduleName)
+		if node.Children[i].Meta == nil {
+			node.Children[i].Meta = make(map[string]any)
+		}
+		node.Children[i].Meta["status"] = status
+		node.Children[i].Meta["summary"] = summary
+	}
+}
+
+// enrichSummaryMeta adds summary to the summary node using TextSummary output.
+func enrichSummaryMeta(node *Node) {
+	for i := range node.Children {
+		if node.Children[i].Type != "summary" {
+			continue
+		}
+		text := TextSummary(&StructuredOutput{Root: *node})
+		lines := strings.Split(text, "\n")
+		if len(lines) > 1 {
+			summary := strings.Join(lines[1:], "\n")
+			if node.Children[i].Meta == nil {
+				node.Children[i].Meta = make(map[string]any)
+			}
+			node.Children[i].Meta["summary"] = summary
+		}
+		break
+	}
 }
 
 // collectAllLines recursively collects all lines from a node and its children.

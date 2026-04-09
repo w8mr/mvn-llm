@@ -216,8 +216,8 @@ func TestJSONSummary_WithWarnings(t *testing.T) {
               "time": "1.234 s"
             }
           ],
-          "overallStatus": "BUILD SUCCESS"
-          "summary": "app:\nsystem modules path not set in conjunction with -source 11"
+          "overallStatus": "BUILD SUCCESS",
+          "summary": "my-app:\nsystem modules path not set in conjunction with -source 11"
         }
       }
     ]
@@ -430,7 +430,7 @@ func TestJSONSummary_MultipleModulesMultipleErrors(t *testing.T) {
           "packaging": "jar",
           "pomFile": "module-a/pom.xml",
           "status": "FAILED",
-          "summary": "Error in module-a\NAnother error",
+          "summary": "Error in module-a\nAnother error",
           "version": "1.0-SNAPSHOT"
         },
         "children": [
@@ -558,7 +558,7 @@ func TestJSONSummary_MultipleModulesMultipleErrors(t *testing.T) {
             }
           ],
           "overallStatus": "BUILD FAILURE",
-          "summary": "module-a:\nError in module-a\NAnother error\n\nmodule-b:\nError in module-b"
+          "summary": "module-a:\nError in module-a\nAnother error\n\nmodule-b:\nError in module-b"
         }
       }
     ]
