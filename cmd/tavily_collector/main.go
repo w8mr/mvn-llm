@@ -206,15 +206,57 @@ func checkParse(content string) ParseResult {
 	return ParseResultNone
 }
 
+// extractMavenLines extracts Maven log section from raw content (which may include HTML)
+// Uses start/end markers to find the Maven block and returns all lines in that range
 func extractMavenLines(content string) []string {
-	var lines []string
-	for _, line := range strings.Split(content, "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "[INFO]") || strings.HasPrefix(line, "[WARNING]") ||
-			strings.HasPrefix(line, "[ERROR]") || strings.HasPrefix(line, "[DEBUG]") ||
-			strings.Contains(line, "BUILD ") {
-			lines = append(lines, line)
+	lines := strings.Split(content, "\n")
+
+	// Find start: look for Maven build start patterns
+	startIdx := -1
+	for i, line := range lines {
+		lower := strings.ToLower(line)
+		if strings.Contains(lower, "[info] scanning for projects") ||
+			strings.Contains(lower, "---<") ||
+			strings.Contains(lower, "reactor build order") ||
+			strings.Contains(lower, "building ") && strings.Contains(lower, " from ") {
+			// Keep some lines before the start (up to 5 lines)
+			startIdx = i - 5
+			if startIdx < 0 {
+				startIdx = 0
+			}
+			break
 		}
 	}
+
+	// Find end: look for BUILD SUCCESS/FAILURE
+	endIdx := -1
+	for i := len(lines) - 1; i >= 0; i-- {
+		lower := strings.ToLower(lines[i])
+		if strings.Contains(lower, "build success") ||
+			strings.Contains(lower, "build failure") ||
+			strings.Contains(lower, "reactor summary") {
+			// Keep some lines after the end (up to 10 lines)
+			endIdx = i + 10
+			if endIdx >= len(lines) {
+				endIdx = len(lines) - 1
+			}
+			break
+		}
+	}
+
+	// Extract the relevant section
+	if startIdx >= 0 && endIdx >= 0 && startIdx < endIdx {
+		lines = lines[startIdx : endIdx+1]
+	} else if startIdx >= 0 {
+		lines = lines[startIdx:]
+	} else if endIdx >= 0 {
+		lines = lines[:endIdx+1]
+	}
+
+	// Limit size - take first 5000 lines
+	if len(lines) > 5000 {
+		lines = lines[:5000]
+	}
+
 	return lines
 }
