@@ -1,5 +1,7 @@
 package structured
 
+import "strings"
+
 // BuildPhaseParser parses Maven plugin execution blocks (e.g., [INFO] --- maven-compiler-plugin:3.11.0:compile @ my-app ---).
 // Each block represents a single plugin invocation with its output.
 type BuildPhaseParser struct {
@@ -43,14 +45,12 @@ func (p *BuildPhaseParser) ExtractSummary(found []string) string {
 		if len(l) == 0 {
 			continue
 		}
-		if l[0] == '[' {
-			if len(l) > 8 && l[:8] == "[ERROR] " {
-				lastError = l[8:]
-			} else if len(l) > 10 && l[:10] == "[WARNING] " {
-				lastWarning = l[10:]
-			} else if len(l) > 6 && l[:6] == "[INFO] " {
-				lastInfo = l[6:]
-			}
+		if strings.HasPrefix(l, "[ERROR] ") && len(l) > 8 {
+			lastError = l[8:]
+		} else if strings.HasPrefix(l, "[WARNING] ") && len(l) > 10 {
+			lastWarning = l[10:]
+		} else if strings.HasPrefix(l, "[INFO] ") && len(l) > 6 {
+			lastInfo = l[6:]
 		}
 	}
 
