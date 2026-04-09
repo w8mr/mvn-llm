@@ -16,173 +16,167 @@ func (p *SummaryPhaseParser) NodeType() string {
 	return "summary"
 }
 
-// ExtractLines - summary has complex boundaries, keeping existing Parse for now.
+// ExtractLines finds the summary section starting at startIdx.
+// Returns lines from startIdx to end of slice.
 func (p *SummaryPhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
-	return nil, 0, false // Uses existing Parse
-}
-
-// ParseMetaData - summary has complex boundaries, keeping existing Parse for now.
-func (p *SummaryPhaseParser) ParseMetaData(found []string) map[string]any {
-	return nil
-}
-
-// Parse attempts to parse a summary block starting at startIdx.
-// Returns the parsed Node (with overall status, module results), number of lines consumed, and whether parsing succeeded.
-func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	if startIdx >= len(lines) {
 		return nil, 0, false
 	}
 	if lines[startIdx] != "[INFO] ------------------------------------------------------------------------" {
 		return nil, 0, false
 	}
-	start := -1
-	end := len(lines)
+
+	// Scan forward to find "Reactor Summary"
 	foundSummaryStart := false
-	for i := startIdx; i < len(lines); i++ {
-		if !foundSummaryStart && isLongSeparator(lines[i]) {
-			if i+1 < len(lines) && isReactorSummaryFor(lines[i+1]) {
-				start = i
-				foundSummaryStart = true
-				i++
-			}
-			continue
-		}
-		if !foundSummaryStart && startIdx > 0 && i == startIdx {
-			continue
-		}
-		if foundSummaryStart && start != -1 {
-			var hasBuildStatus, hasTotalTime, hasFinishedAt bool
-			for j := i; j < len(lines); j++ {
-				if !hasBuildStatus && (isBuildSuccess(lines[j]) || isBuildFailure(lines[j])) {
-					hasBuildStatus = true
-				}
-				if hasBuildStatus && !hasTotalTime && isTotalTime(lines[j]) {
-					hasTotalTime = true
-				}
-				if hasTotalTime && !hasFinishedAt && isFinishedAt(lines[j]) {
-					hasFinishedAt = true
-				}
-			}
-			// Summary should capture everything until end of file
-			end = len(lines)
+	for i := startIdx; i < startIdx+3 && i < len(lines); i++ {
+		if isReactorSummaryFor(lines[i]) {
+			foundSummaryStart = true
 			break
 		}
 	}
-	if start != -1 && end > start {
-		extendedEnd := end
-		if extendedEnd < len(lines) && strings.TrimSpace(lines[extendedEnd]) == "" {
-			extendedEnd++
+	if !foundSummaryStart {
+		return nil, 0, false
+	}
+
+	// Return everything to end of file
+	end := len(lines)
+	if end > startIdx && strings.TrimSpace(lines[end-1]) == "" {
+		end--
+	}
+	return lines[startIdx:end], end - startIdx, true
+}
+
+// ParseMetaData extracts metadata from the found summary lines.
+func (p *SummaryPhaseParser) ParseMetaData(found []string) map[string]any {
+	if len(found) == 0 {
+		return nil
+	}
+
+	meta := map[string]any{}
+	moduleList := []map[string]any{}
+	var overallStatus, totalTime, finishedAt string
+
+	// Find "Reactor Summary for" line
+	summaryStart := -1
+	for i, line := range found {
+		if strings.HasPrefix(line, "[INFO] Reactor Summary for") {
+			summaryStart = i
+			break
 		}
+	}
+	if summaryStart == -1 {
+		summaryStart = 0
+	}
 
-		meta := map[string]any{}
-		moduleList := []map[string]any{}
-		var overallStatus, totalTime, finishedAt string
-
-		summaryStart := -1
-		for i := start; i < extendedEnd; i++ {
-			if strings.HasPrefix(lines[i], "[INFO] Reactor Summary for") {
-				summaryStart = i
-				break
-			}
+	// Find module results table boundaries
+	mLinesStart := -1
+	mLinesEnd := -1
+	for i := summaryStart + 2; i < len(found); i++ {
+		if mLinesStart == -1 && strings.TrimSpace(found[i]) != "" {
+			mLinesStart = i
 		}
-
-		mLinesStart := -1
-		mLinesEnd := -1
-		for i := summaryStart + 2; i < extendedEnd; i++ {
-			if mLinesStart == -1 && strings.TrimSpace(lines[i]) != "" {
-				mLinesStart = i
-			}
-			if strings.HasPrefix(lines[i], "[INFO] ------------------------------------------------------------------------") {
+		if strings.HasPrefix(found[i], "[INFO] ------------------------------------------------------------------------") {
+			mLinesEnd = i
+			break
+		}
+	}
+	if mLinesStart == -1 {
+		mLinesStart = summaryStart + 2
+	}
+	if mLinesEnd == -1 {
+		for i := mLinesStart; i < len(found); i++ {
+			if strings.HasPrefix(found[i], "[INFO] BUILD SUCCESS") || strings.HasPrefix(found[i], "[INFO] BUILD FAILURE") {
 				mLinesEnd = i
 				break
 			}
 		}
-		if mLinesStart == -1 {
-			mLinesStart = summaryStart + 2
-		}
-		if mLinesEnd == -1 {
-			for i := mLinesStart; i < extendedEnd; i++ {
-				if strings.HasPrefix(lines[i], "[INFO] BUILD SUCCESS") || strings.HasPrefix(lines[i], "[INFO] BUILD FAILURE") {
-					mLinesEnd = i
-					break
-				}
-			}
-		}
+	}
 
-		if mLinesStart != -1 && mLinesEnd != -1 && mLinesEnd > mLinesStart {
-			modRegex := regexp.MustCompile(`^(.*?) +[. ]+ *(SUCCESS|FAILURE|SKIPPED) *\[ *([^\]]+?) *\]$`)
-			for _, modLine := range lines[mLinesStart:mLinesEnd] {
-				if !strings.HasPrefix(modLine, "[INFO] ") {
-					continue
+	// Extract module results
+	if mLinesStart != -1 && mLinesEnd != -1 && mLinesEnd > mLinesStart {
+		modRegex := regexp.MustCompile(`^(.*?) +[. ]+ *(SUCCESS|FAILURE|SKIPPED) *\[ *([^\]]+?) *\]$`)
+		for _, modLine := range found[mLinesStart:mLinesEnd] {
+			if !strings.HasPrefix(modLine, "[INFO] ") {
+				continue
+			}
+			ml := strings.TrimPrefix(modLine, "[INFO] ")
+			if matches := modRegex.FindStringSubmatch(ml); matches != nil {
+				name := strings.TrimSpace(matches[1])
+				status := matches[2]
+				time := strings.TrimSpace(matches[3])
+				moduleList = append(moduleList, map[string]any{
+					"name":   name,
+					"status": status,
+					"time":   time,
+				})
+			} else {
+				fields := strings.Fields(ml)
+				name, status, time := "", "", ""
+				if len(fields) >= 3 && strings.HasSuffix(fields[len(fields)-2], "SUCCESS") {
+					status = "SUCCESS"
+					name = strings.Join(fields[:len(fields)-2], " ")
+					time = strings.Trim(fields[len(fields)-1], "[]")
+				} else if len(fields) >= 3 && strings.HasSuffix(fields[len(fields)-2], "FAILURE") {
+					status = "FAILURE"
+					name = strings.Join(fields[:len(fields)-2], " ")
+					time = strings.Trim(fields[len(fields)-1], "[]")
+				} else if len(fields) >= 3 && strings.HasSuffix(fields[len(fields)-2], "SKIPPED") {
+					status = "SKIPPED"
+					name = strings.Join(fields[:len(fields)-2], " ")
+					time = strings.Trim(fields[len(fields)-1], "[]")
 				}
-				ml := strings.TrimPrefix(modLine, "[INFO] ")
-				if matches := modRegex.FindStringSubmatch(ml); matches != nil {
-					name := strings.TrimSpace(matches[1])
-					status := matches[2]
-					time := strings.TrimSpace(matches[3])
+				if name != "" && status != "" {
 					moduleList = append(moduleList, map[string]any{
 						"name":   name,
 						"status": status,
 						"time":   time,
 					})
-				} else {
-					fields := strings.Fields(ml)
-					name, status, time := "", "", ""
-					if len(fields) >= 3 && strings.HasSuffix(fields[len(fields)-2], "SUCCESS") {
-						status = "SUCCESS"
-						name = strings.Join(fields[:len(fields)-2], " ")
-						time = strings.Trim(fields[len(fields)-1], "[]")
-					} else if len(fields) >= 3 && strings.HasSuffix(fields[len(fields)-2], "FAILURE") {
-						status = "FAILURE"
-						name = strings.Join(fields[:len(fields)-2], " ")
-						time = strings.Trim(fields[len(fields)-1], "[]")
-					} else if len(fields) >= 3 && strings.HasSuffix(fields[len(fields)-2], "SKIPPED") {
-						status = "SKIPPED"
-						name = strings.Join(fields[:len(fields)-2], " ")
-						time = strings.Trim(fields[len(fields)-1], "[]")
-					}
-					if name != "" && status != "" {
-						moduleList = append(moduleList, map[string]any{
-							"name":   name,
-							"status": status,
-							"time":   time,
-						})
-					}
 				}
 			}
 		}
-
-		for i := extendedEnd - 1; i >= start; i-- {
-			if overallStatus == "" && (strings.Contains(lines[i], "BUILD SUCCESS") || strings.Contains(lines[i], "BUILD FAILURE")) {
-				overallStatus = strings.TrimSpace(strings.TrimPrefix(lines[i], "[INFO] "))
-			}
-			if totalTime == "" && strings.HasPrefix(lines[i], "[INFO] Total time:") {
-				totalTime = strings.TrimSpace(strings.TrimPrefix(lines[i], "[INFO] Total time:"))
-			}
-			if finishedAt == "" && strings.HasPrefix(lines[i], "[INFO] Finished at:") {
-				finishedAt = strings.TrimSpace(strings.TrimPrefix(lines[i], "[INFO] Finished at:"))
-			}
-		}
-		if len(moduleList) > 0 {
-			meta["modules"] = moduleList
-		}
-		if overallStatus != "" {
-			meta["overallStatus"] = overallStatus
-		}
-		if totalTime != "" {
-			meta["totalTime"] = totalTime
-		}
-		if finishedAt != "" {
-			meta["finishedAt"] = finishedAt
-		}
-
-		node := &Node{
-			Name:  "summary",
-			Type:  "summary",
-			Lines: lines[start:extendedEnd],
-			Meta:  meta,
-		}
-		return node, extendedEnd - start, true
 	}
-	return nil, 0, false
+
+	// Search backwards for overallStatus, totalTime, finishedAt
+	for i := len(found) - 1; i >= 0; i-- {
+		if overallStatus == "" && (strings.Contains(found[i], "BUILD SUCCESS") || strings.Contains(found[i], "BUILD FAILURE")) {
+			overallStatus = strings.TrimSpace(strings.TrimPrefix(found[i], "[INFO] "))
+		}
+		if totalTime == "" && strings.HasPrefix(found[i], "[INFO] Total time:") {
+			totalTime = strings.TrimSpace(strings.TrimPrefix(found[i], "[INFO] Total time:"))
+		}
+		if finishedAt == "" && strings.HasPrefix(found[i], "[INFO] Finished at:") {
+			finishedAt = strings.TrimSpace(strings.TrimPrefix(found[i], "[INFO] Finished at:"))
+		}
+	}
+
+	if len(moduleList) > 0 {
+		meta["modules"] = moduleList
+	}
+	if overallStatus != "" {
+		meta["overallStatus"] = overallStatus
+	}
+	if totalTime != "" {
+		meta["totalTime"] = totalTime
+	}
+	if finishedAt != "" {
+		meta["finishedAt"] = finishedAt
+	}
+
+	return meta
+}
+
+// Parse combines ExtractLines and ParseMetaData for backward compatibility.
+func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
+	found, consumed, ok := p.ExtractLines(lines, startIdx)
+	if !ok {
+		return nil, 0, false
+	}
+	meta := p.ParseMetaData(found)
+	node := &Node{
+		Name:  "summary",
+		Type:  "summary",
+		Lines: found,
+		Meta:  meta,
+	}
+	return node, consumed, true
 }
