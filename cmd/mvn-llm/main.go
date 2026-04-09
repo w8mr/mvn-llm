@@ -41,7 +41,7 @@ func mainLogic() {
 	projectRoot := flag.String("project-root", ".", "Project root directory")
 	noClean := flag.Bool("no-clean", false, "Skip mvn clean before build")
 	resumeFrom := flag.String("rf", "", "Resume build from specified module")
-	output := flag.String("o", "json-full-with-lines", "Output format(s): comma-separated list of text, json, json-full-with-lines, maven-output")
+	output := flag.String("o", "json-full-with-lines", "Output format(s): comma-separated list of text, json, json-full, json-full-with-lines, maven-output")
 	depFilter := flag.String("dep-filter", "", "Filter dependencies (e.g., 'junit')")
 	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
 	depVerbose := flag.Bool("dep-verbose", false, "Show verbose dependency tree")
@@ -96,10 +96,13 @@ func mainLogic() {
 				fmt.Println(outStr)
 			}
 		}
-		if outType == "json" {
+		if outType == "json" || outType == "json-full" {
 			if outStr, ok := mvnOut.(string); ok {
 				parser := structured.NewOutputParser()
 				structuredOut := parser.ParseOutput(splitLines(outStr), mvnErr, parseConfig)
+				if outType == "json-full" {
+					structured.StripLines(structuredOut)
+				}
 				jsonBytes, err := marshalStructuredJSON(structuredOut)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Failed to encode JSON: %v\n", err)

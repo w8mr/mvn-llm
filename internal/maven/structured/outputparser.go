@@ -186,6 +186,21 @@ func collectAllLines(node *Node) []string {
 	return lines
 }
 
+// StripLines removes the Lines field from all nodes except the root.
+// This is used for json-full output to reduce size.
+func StripLines(out *StructuredOutput) {
+	stripLinesRecursive(&out.Root, true)
+}
+
+func stripLinesRecursive(node *Node, isRoot bool) {
+	if !isRoot {
+		node.Lines = nil
+	}
+	for i := range node.Children {
+		stripLinesRecursive(&node.Children[i], false)
+	}
+}
+
 // LinesMatch compares two slices of strings for exact equality.
 // Used to verify parsing preserves all original lines.
 func LinesMatch(original, parsed []string) bool {
