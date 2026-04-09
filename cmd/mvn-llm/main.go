@@ -93,6 +93,9 @@ func mainLogic() {
 				parser := structured.NewOutputParser()
 				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict)
 				if mvnErr != nil {
+					if structuredOut.Root.Meta == nil {
+						structuredOut.Root.Meta = make(map[string]any)
+					}
 					structuredOut.Root.Meta["error"] = mvnErr
 				}
 				jsonBytes, err := marshalStructuredJSON(structuredOut)
@@ -117,6 +120,9 @@ func mainLogic() {
 				parser := structured.NewOutputParser()
 				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict)
 				if mvnErr != nil {
+					if structuredOut.Root.Meta == nil {
+						structuredOut.Root.Meta = make(map[string]any)
+					}
 					structuredOut.Root.Meta["error"] = mvnErr
 				}
 				jsonBytes, err := marshalStructuredJSON(structuredOut)
