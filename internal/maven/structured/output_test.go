@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// Test helper to create a structured output for testing
+// testStructuredOutput creates a structured output for testing TextSummary.
 func testStructuredOutput(modules []map[string]any) *StructuredOutput {
 	root := Node{Type: "root", Name: "maven-build"}
 	for _, m := range modules {
@@ -28,75 +28,88 @@ func testStructuredOutput(modules []map[string]any) *StructuredOutput {
 	return &StructuredOutput{Root: root}
 }
 
+// runTextSummaryTest runs TextSummary with the given modules and checks expected output.
+func runTextSummaryTest(t *testing.T, name string, modules []map[string]any, expectedSummary string) {
+	out := testStructuredOutput(modules)
+	result := TextSummary(out)
+	if result != expectedSummary {
+		t.Errorf("Test %q:\nExpected:\n%s\nGot:\n%s", name, expectedSummary, result)
+	}
+}
+
 func TestTextSummary_AllSuccess(t *testing.T) {
-	out := testStructuredOutput([]map[string]any{
+	modules := []map[string]any{
 		{
-			"name": "module-a",
+			"name": "my-app",
 			"builds": []map[string]any{
 				{"plugin": "clean", "status": "SUCCESS", "summary": "Successful"},
 				{"plugin": "compile", "status": "SUCCESS", "summary": "Successful: Compiled 10 files"},
+				{"plugin": "jar", "status": "SUCCESS", "summary": "Successful: Building jar"},
 			},
 		},
-	})
-	result := TextSummary(out)
-	expected := "Successful:\nmodule-a: Compiled 10 files"
-	if result != expected {
-		t.Errorf("AllSuccess:\n%s\nwant:\n%s", result, expected)
 	}
+	runTextSummaryTest(t, "all success", modules, "Successful:\nmy-app: Building jar")
 }
 
 func TestTextSummary_WithWarnings(t *testing.T) {
-	out := testStructuredOutput([]map[string]any{
+	modules := []map[string]any{
 		{
-			"name": "module-a",
+			"name": "my-app",
 			"builds": []map[string]any{
-				{"plugin": "clean", "status": "SUCCESS", "summary": "Successful"},
+				{"plugin": "compile", "status": "SUCCESS", "summary": "Successful"},
 				{"plugin": "compile", "status": "SUCCESS-WITH-WARNINGS", "summary": "Successful: Some warning"},
 			},
 		},
-	})
-	result := TextSummary(out)
-	expected := "Successful:\nmodule-a: Some warning"
-	if result != expected {
-		t.Errorf("WithWarnings:\n%s\nwant:\n%s", result, expected)
 	}
+	runTextSummaryTest(t, "with warnings", modules, "Successful:\nmy-app: Some warning")
 }
 
 func TestTextSummary_WithErrors(t *testing.T) {
-	out := testStructuredOutput([]map[string]any{
+	modules := []map[string]any{
 		{
-			"name": "module-a",
+			"name": "my-app",
 			"builds": []map[string]any{
 				{"plugin": "compile", "status": "FAILED", "summary": "Failure: Compilation failed"},
 			},
 		},
-	})
-	result := TextSummary(out)
-	expected := "Failure:\nmodule-a: Compilation failed"
-	if result != expected {
-		t.Errorf("WithErrors:\n%s\nwant:\n%s", result, expected)
 	}
+	runTextSummaryTest(t, "with errors", modules, "Failure:\nmy-app: Compilation failed")
 }
 
-func TestTextSummary_MixedModules(t *testing.T) {
-	out := testStructuredOutput([]map[string]any{
+func TestTextSummary_MultipleModulesErrorsFirst(t *testing.T) {
+	modules := []map[string]any{
 		{
 			"name": "module-a",
 			"builds": []map[string]any{
-				{"plugin": "compile", "status": "FAILED", "summary": "Failure: Error in A"},
+				{"plugin": "compile", "status": "SUCCESS", "summary": "Successful: OK"},
 			},
 		},
 		{
 			"name": "module-b",
 			"builds": []map[string]any{
-				{"plugin": "compile", "status": "SUCCESS-WITH-WARNINGS", "summary": "Successful: Warning in B"},
-				{"plugin": "test", "status": "SUCCESS", "summary": "Successful: Tests passed"},
+				{"plugin": "compile", "status": "FAILED", "summary": "Failure: Error in B"},
 			},
 		},
-	})
-	result := TextSummary(out)
-	expected := "Failure:\nmodule-a: Error in A\n\nmodule-b: Warning in B"
-	if result != expected {
-		t.Errorf("Got: %q", result)
 	}
+	// Errors shown first, then warnings/success with empty line between
+	runTextSummaryTest(t, "multiple modules errors first", modules, "Failure:\nmodule-b: Error in B\n\nmodule-a: OK")
+}
+
+func TestTextSummary_WarningsBeforeErrors(t *testing.T) {
+	modules := []map[string]any{
+		{
+			"name": "module-a",
+			"builds": []map[string]any{
+				{"plugin": "compile", "status": "SUCCESS-WITH-WARNINGS", "summary": "Successful: Warning"},
+			},
+		},
+		{
+			"name": "module-b",
+			"builds": []map[string]any{
+				{"plugin": "compile", "status": "SUCCESS", "summary": "Successful"},
+			},
+		},
+	}
+	// When no errors, shows warnings first (highest status) then success
+	runTextSummaryTest(t, "warnings before errors", modules, "Successful:\nmodule-a: Warning\n  module-b: Successful")
 }
