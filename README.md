@@ -67,7 +67,7 @@ Recommended flags for LLMs:
 
 | Flag                       | Purpose                                                    |
 |---------------------------|------------------------------------------------------------|
-| `-o text\|json`            | Agent-friendly output: summary text or structured JSON     |
+| `-o text|json`            | Agent-friendly output: summary text or structured JSON     |
 | `-output-file <path>`     | Write JSON/text to file for further LLM consumption        |
 | `-rf <module>`            | Resume from Maven module (LLMs can auto-retry)             |
 | `-dep-ancestor <id>`      | Show ancestors for a dependency (dependency reasoning)      |
@@ -75,6 +75,14 @@ Recommended flags for LLMs:
 | `-project-root <dir>`     | Project root (default: `.`)                                |
 | `-no-clean`               | Skip running `mvn clean` before building                   |
 | `-dep-filter <expr>`      | (deps only) Filter dependencies                            |
+
+### Output Formats
+
+- **text (`-o text`):** Human-readable summary
+- **json (`-o json`):** Simple JSON with status, summary, and failed modules
+- **json-full (`-o json-full`):** Full structured JSON without line data
+- **json-full-with-lines (`-o json-full-with-lines`):** Full structured JSON with lines (default)
+- **maven-output (`-o maven-output`):** Raw Maven output
 
 ### Examples for LLMs
 
@@ -116,17 +124,6 @@ Recommended flags for LLMs:
   mvn-llm test -o text
   # TEST_FAILURE (module: module-a) at com.example.CalculatorTest.testFail:9 | This test always fails expected:<0> but was:<1>
   ```
-
-### Output Formats
-
-- **Text (`-o text`):** One-line summary for LLM feedback, e.g.:  
-  `SUCCESS - Tests run: 2, Failures: 0, Errors: 0`  
-  `COMPILE_ERROR (module: foo) at SomeClass.java:123 | error message`
-- **JSON (`-o json`):** Machine-readable for planning/reasoning, always structured as:
-  - `status`: build/test result or error type (for intent detection by LLM)
-  - `failedModule`, `resumeCommand`, `errors`, `failureLocation`, etc.
-  - For `deps`, provides a recursive dependency tree and ancestor list
-- **Both formats:** Guaranteed stable output for parsing, step-by-step correction, or surgical follow-up intents
 
 ---
 

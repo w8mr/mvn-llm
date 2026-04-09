@@ -46,7 +46,7 @@ func mainLogic() {
 	projectRoot := flag.String("project-root", ".", "Project root directory")
 	noClean := flag.Bool("no-clean", false, "Skip mvn clean before build")
 	resumeFrom := flag.String("rf", "", "Resume build from specified module")
-	output := flag.String("o", "json-full-with-lines", "Output format(s): comma-separated list of text, json, json-full, json-full-with-lines, maven-output")
+	output := flag.String("o", "json-full-with-lines", "Output format(s): text, json, json-full, json-full-with-lines, maven-output")
 	depFilter := flag.String("dep-filter", "", "Filter dependencies (e.g., 'junit')")
 	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
 	depVerbose := flag.Bool("dep-verbose", false, "Show verbose dependency tree")
