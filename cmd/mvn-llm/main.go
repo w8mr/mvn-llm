@@ -111,7 +111,7 @@ func mainLogic() {
 				var jsonBytes []byte
 				var err error
 				if outType == "json" {
-					jsonBytes, err = json.Marshal(structured.SimpleJSON(structuredOut))
+					jsonBytes, err = structured.SimpleJSONBytes(structuredOut)
 				} else {
 					structured.StripLines(structuredOut)
 					jsonBytes, err = marshalStructuredJSON(structuredOut)

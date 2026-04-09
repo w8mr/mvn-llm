@@ -1,6 +1,7 @@
 package structured
 
 import (
+	"encoding/json"
 	"reflect"
 	"strings"
 
@@ -319,14 +320,23 @@ func SimpleJSON(out *StructuredOutput) map[string]any {
 		if child.Type == "module" {
 			meta := child.Meta
 			if status, ok := meta["status"].(string); ok && status == "FAILED" {
+				artifactId := child.Name
+				if ai, ok := meta["artifactId"].(string); ok {
+					artifactId = ai
+				}
 				if fm, ok := result["failedModules"].([]string); ok {
-					result["failedModules"] = append(fm, child.Name)
+					result["failedModules"] = append(fm, artifactId)
 				}
 			}
 		}
 	}
 
 	return result
+}
+
+// SimpleJSONBytes returns indented JSON bytes for SimpleJSON.
+func SimpleJSONBytes(out *StructuredOutput) ([]byte, error) {
+	return json.MarshalIndent(SimpleJSON(out), "", "  ")
 }
 
 // StripLines removes the Lines field from all nodes.
