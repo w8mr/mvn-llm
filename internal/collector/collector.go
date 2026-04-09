@@ -6,7 +6,6 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -17,28 +16,27 @@ import (
 
 const (
 	maxExamples = 1000
-	searchURL   = "https://www.googleapis.com/customsearch/v1"
 	storagePath = "testdata/collector"
 	searchDelay = 2 * time.Second
 	httpTimeout = 30 * time.Second
 )
 
 type Collector struct {
-	apiKey     string
-	storageDir string
-	count      int
-	seenURLs   map[string]bool
-	client     *http.Client
+	githubToken string
+	storageDir  string
+	count       int
+	seenURLs    map[string]bool
+	client      *http.Client
 }
 
-func New(apiKey, storageDir string) *Collector {
+func New(githubToken, storageDir string) *Collector {
 	if storageDir == "" {
 		storageDir = storagePath
 	}
 	return &Collector{
-		apiKey:     apiKey,
-		storageDir: storageDir,
-		seenURLs:   make(map[string]bool),
+		githubToken: githubToken,
+		storageDir:  storageDir,
+		seenURLs:    make(map[string]bool),
 		client: &http.Client{
 			Timeout: httpTimeout,
 		},
@@ -50,12 +48,18 @@ func (c *Collector) ensureStorageDir() error {
 }
 
 func (c *Collector) search(query string) ([]string, error) {
-	searchQuery := url.QueryEscape(query + " maven build output \"BUILD SUCCESS\" OR \"BUILD FAILURE\"")
-	reqURL := fmt.Sprintf("%s?key=%s&q=%s", searchURL, c.apiKey, searchQuery)
+	// Simple search for BUILD SUCCESS in log files
+	searchURL := fmt.Sprintf("https://api.github.com/search/code?q=%s+BUILD+SUCCESS&per_page=10", query)
+	fmt.Printf("DEBUG: search URL: %s\n", searchURL)
 
-	req, err := http.NewRequest("GET", reqURL, nil)
+	req, err := http.NewRequest("GET", searchURL, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	if c.githubToken != "" {
+		req.Header.Set("Authorization", "token "+c.githubToken)
 	}
 
 	resp, err := c.client.Do(req)
@@ -69,9 +73,16 @@ func (c *Collector) search(query string) ([]string, error) {
 		return nil, err
 	}
 
+	// Debug output
+	fmt.Printf("DEBUG: status=%d, body_len=%d\n", resp.StatusCode, len(body))
+	if len(body) < 500 {
+		fmt.Printf("DEBUG: body=%s\n", string(body))
+	}
+
 	var result struct {
 		Items []struct {
-			Link string `json:"link"`
+			URL  string `json:"html_url"`
+			Name string `json:"name"`
 		} `json:"items"`
 	}
 
@@ -81,8 +92,10 @@ func (c *Collector) search(query string) ([]string, error) {
 
 	var links []string
 	for _, item := range result.Items {
-		if item.Link != "" && !c.seenURLs[item.Link] {
-			links = append(links, item.Link)
+		// For repo search, construct URL to fetch raw content
+		if item.URL != "" && !c.seenURLs[item.URL] {
+			// Just store the repo URL for now
+			links = append(links, item.URL)
 		}
 	}
 
@@ -95,7 +108,10 @@ func (c *Collector) fetchContent(link string) (string, error) {
 		return "", err
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; MavenLLMCollector/1.0)")
+	req.Header.Set("Accept", "application/vnd.github.v3.raw+json")
+	if c.githubToken != "" {
+		req.Header.Set("Authorization", "token "+c.githubToken)
+	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -214,11 +230,11 @@ func (c *Collector) Collect(maxIterations int) error {
 	}
 
 	queries := []string{
-		"maven multi-module project build",
-		"maven CI build output failure",
-		"maven test failure output",
-		"maven compile error output",
-		"maven package success output",
+		"maven build output",
+		"maven test failure",
+		"maven compile error",
+		"maven package",
+		"maven install",
 	}
 
 	for i := 0; i < maxIterations && c.count < maxExamples; i++ {
