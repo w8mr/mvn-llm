@@ -37,10 +37,11 @@ func safeMain() {
 
 // mainLogic contains the original main function body.
 func mainLogic() {
+	goal := flag.String("goal", "", "Maven goal (e.g., install, test, compile)")
 	projectRoot := flag.String("project-root", ".", "Project root directory")
 	noClean := flag.Bool("no-clean", false, "Skip mvn clean before build")
 	resumeFrom := flag.String("rf", "", "Resume build from specified module")
-	output := flag.String("o", "structured-json", "Output format: structured-json, text, or json")
+	output := flag.String("o", "structured-json", "Output format(s): comma-separated list of text, json, structured-json, maven-output")
 	outputFile := flag.String("output-file", "", "Optional file path for JSON output")
 	depFilter := flag.String("dep-filter", "", "Filter dependencies (e.g., 'junit')")
 	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
@@ -48,13 +49,11 @@ func mainLogic() {
 	noStrict := flag.Bool("no-strict", false, "Disable strict parsing")
 	flag.Parse()
 
-	args := flag.Args()
-	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: mvn-llm <goal> [flags]")
+	if *goal == "" {
+		fmt.Fprintln(os.Stderr, "Usage: mvn-llm -goal <goal> [flags]")
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
-	goal := args[0]
 	ctx := context.Background()
 	var mvnOut interface{}
 	var mvnErr error
@@ -62,7 +61,7 @@ func mainLogic() {
 		NoClean:    *noClean,
 		ResumeFrom: *resumeFrom,
 	}
-	if goal == "deps" {
+	if *goal == "deps" {
 		depsHandler := intent.DepsHandler{
 			Filter:       *depFilter,
 			ShowAncestor: *depAncestor,
@@ -75,35 +74,66 @@ func mainLogic() {
 		}
 		return
 	}
-	mvnOut, mvnErr = intent.HandleMavenGoal(ctx, *projectRoot, goal, opts, "structured-json")
+	mvnOut, mvnErr = intent.HandleMavenGoal(ctx, *projectRoot, *goal, opts, "structured-json")
 
-	// If mvnOut is a string (raw Maven output, best for structured parser)
-	if *output == "structured-json" {
-		if outStr, ok := mvnOut.(string); ok {
-			parser := structured.NewOutputParser()
-			structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict)
-			jsonBytes, err := marshalStructuredJSON(structuredOut)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to encode structured JSON: %v\n", err)
-				os.Exit(1)
+	outputTypes := strings.Split(*output, ",")
+	hasMavenOutput := false
+
+	for _, outType := range outputTypes {
+		outType = strings.TrimSpace(outType)
+		if outType == "maven-output" {
+			hasMavenOutput = true
+			continue
+		}
+		if outType == "structured-json" {
+			if outStr, ok := mvnOut.(string); ok {
+				parser := structured.NewOutputParser()
+				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict)
+				jsonBytes, err := marshalStructuredJSON(structuredOut)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to encode structured JSON: %v\n", err)
+					os.Exit(1)
+				}
+				if *outputFile != "" {
+					os.WriteFile(*outputFile, jsonBytes, 0644)
+				} else {
+					os.Stdout.Write(jsonBytes)
+				}
 			}
-			if *outputFile != "" {
-				os.WriteFile(*outputFile, jsonBytes, 0644)
-			} else {
-				os.Stdout.Write(jsonBytes)
+		}
+		if outType == "text" {
+			if outStr, ok := mvnOut.(string); ok {
+				fmt.Println(outStr)
 			}
-			if mvnErr != nil {
-				os.Exit(1)
+		}
+		if outType == "json" {
+			if outStr, ok := mvnOut.(string); ok {
+				parser := structured.NewOutputParser()
+				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict)
+				jsonBytes, err := marshalStructuredJSON(structuredOut)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to encode JSON: %v\n", err)
+					os.Exit(1)
+				}
+				if *outputFile != "" {
+					os.WriteFile(*outputFile, jsonBytes, 0644)
+				} else {
+					os.Stdout.Write(jsonBytes)
+				}
 			}
-			return
 		}
 	}
-	if outStr, ok := mvnOut.(string); ok {
-		fmt.Println(outStr)
-		if mvnErr != nil {
-			os.Exit(1)
+
+	if hasMavenOutput {
+		fmt.Println("---MAVEN OUTPUT START---")
+		if outStr, ok := mvnOut.(string); ok {
+			fmt.Print(outStr)
 		}
-		return
+		fmt.Println("---MAVEN OUTPUT END---")
+	}
+
+	if mvnErr != nil {
+		os.Exit(1)
 	}
 }
 
