@@ -20,7 +20,7 @@ type StructuredOutput struct {
 }
 
 func TestMvnLlmStructuredJsonInstallSuccess(t *testing.T) {
-	cmd := exec.Command("go", "run", "../cmd/mvn-llm", "-goal=install", "-project-root=../testdata/sample")
+	cmd := exec.Command("go", "run", "../cmd/mvn-llm", "-goal=install", "-project-root=../testdata/sample", "-o=json-full-with-lines")
 	outBytes, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Expected success exit, got: %v\nOutput:\n%s", err, string(outBytes))
