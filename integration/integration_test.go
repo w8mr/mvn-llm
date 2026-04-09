@@ -29,8 +29,9 @@ func TestMvnLlmStructuredJsonInstallSuccess(t *testing.T) {
 	if err := json.Unmarshal(outBytes, &out); err != nil {
 		t.Fatalf("Output is not valid JSON: %v\nRaw Out:\n%s", err, string(outBytes))
 	}
-	if len(out.Root.Children) < 2 {
-		t.Errorf("Expected at least 2 children, got %d", len(out.Root.Children))
+	// Expected: initialization, sample-multi, module-a, module-b, summary = 5 children
+	if len(out.Root.Children) != 5 {
+		t.Errorf("Expected 5 children, got %d", len(out.Root.Children))
 	}
 
 	// Check for unparsable nodes - should be none
