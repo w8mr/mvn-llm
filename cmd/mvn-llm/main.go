@@ -108,10 +108,14 @@ func mainLogic() {
 			if outStr, ok := mvnOut.(string); ok {
 				parser := structured.NewOutputParser()
 				structuredOut := parser.ParseOutput(splitLines(outStr), mvnErr, parseConfig)
-				if outType == "json-full" {
+				var jsonBytes []byte
+				var err error
+				if outType == "json" {
+					jsonBytes, err = json.Marshal(structured.SimpleJSON(structuredOut))
+				} else {
 					structured.StripLines(structuredOut)
+					jsonBytes, err = marshalStructuredJSON(structuredOut)
 				}
-				jsonBytes, err := marshalStructuredJSON(structuredOut)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Failed to encode JSON: %v\n", err)
 					os.Exit(1)

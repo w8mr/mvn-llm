@@ -295,6 +295,35 @@ func collectAllLines(node *Node) []string {
 	return lines
 }
 
+// SimpleJSON returns a simple JSON representation with status, summary, and failed modules.
+func SimpleJSON(out *StructuredOutput) map[string]any {
+	result := map[string]any{
+		"failedModules": []string{},
+	}
+
+	for _, child := range out.Root.Children {
+		if child.Type == "summary" {
+			meta := child.Meta
+			if status, ok := meta["overallStatus"].(string); ok {
+				result["status"] = status
+			}
+			if summary, ok := meta["summary"].(string); ok {
+				result["summary"] = summary
+			}
+		}
+		if child.Type == "module" {
+			meta := child.Meta
+			if status, ok := meta["status"].(string); ok && status == "FAILED" {
+				if fm, ok := result["failedModules"].([]string); ok {
+					result["failedModules"] = append(fm, child.Name)
+				}
+			}
+		}
+	}
+
+	return result
+}
+
 // StripLines removes the Lines field from all nodes.
 // This is used for json-full output to reduce size.
 func StripLines(out *StructuredOutput) {
