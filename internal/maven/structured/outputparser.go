@@ -240,18 +240,23 @@ func enrichSummaryMeta(node *Node) {
 		status, _ := meta["status"].(string)
 		summary, _ := meta["summary"].(string)
 
+		displayName := child.Name
+		if artifactId, ok := meta["artifactId"].(string); ok && artifactId != child.Name {
+			displayName = child.Name + " [" + artifactId + "]"
+		}
+
 		if status == "FAILED" {
 			if overallStatus != "FAILURE" {
 				overallStatus = "FAILURE"
 			}
-			errs = append(errs, child.Name+":\n"+summary)
+			errs = append(errs, displayName+":\n"+summary)
 		} else if status == "SUCCESS-WITH-WARNINGS" {
 			if overallStatus == "SUCCESS" {
 				overallStatus = "SUCCESS-WITH-WARNINGS"
 			}
-			warnSucc = append(warnSucc, child.Name+":\n"+summary)
+			warnSucc = append(warnSucc, displayName+":\n"+summary)
 		} else {
-			warnSucc = append(warnSucc, child.Name+":\n"+summary)
+			warnSucc = append(warnSucc, displayName+":\n"+summary)
 		}
 	}
 
