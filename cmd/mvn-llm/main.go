@@ -42,7 +42,6 @@ func mainLogic() {
 	noClean := flag.Bool("no-clean", false, "Skip mvn clean before build")
 	resumeFrom := flag.String("rf", "", "Resume build from specified module")
 	output := flag.String("o", "structured-json", "Output format(s): comma-separated list of text, json, structured-json, maven-output")
-	outputFile := flag.String("output-file", "", "Optional file path for JSON output")
 	depFilter := flag.String("dep-filter", "", "Filter dependencies (e.g., 'junit')")
 	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
 	depVerbose := flag.Bool("dep-verbose", false, "Show verbose dependency tree")
@@ -97,11 +96,7 @@ func mainLogic() {
 					fmt.Fprintf(os.Stderr, "Failed to encode structured JSON: %v\n", err)
 					os.Exit(1)
 				}
-				if *outputFile != "" {
-					os.WriteFile(*outputFile, jsonBytes, 0644)
-				} else {
-					os.Stdout.Write(jsonBytes)
-				}
+				os.Stdout.Write(jsonBytes)
 			}
 		}
 		if outType == "text" {
@@ -118,11 +113,7 @@ func mainLogic() {
 					fmt.Fprintf(os.Stderr, "Failed to encode JSON: %v\n", err)
 					os.Exit(1)
 				}
-				if *outputFile != "" {
-					os.WriteFile(*outputFile, jsonBytes, 0644)
-				} else {
-					os.Stdout.Write(jsonBytes)
-				}
+				os.Stdout.Write(jsonBytes)
 			}
 		}
 	}
