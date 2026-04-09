@@ -61,7 +61,8 @@ func TestTextSummary_WithWarnings(t *testing.T) {
 [INFO] --- compiler:3.15.0:compile (default-compile) @ my-app ---
 [INFO] Compiling 1 source file
 [WARNING] system modules path not set in conjunction with -source 11
-[INFO] 
+[INFO] Successfully compiled 1 source file
+[INFO]
 [INFO] --- jar:3.5.0:jar (default-jar) @ my-app ---
 [INFO] Building jar: target/my-app.jar
 [INFO] ------------------------------------------------------------------------
@@ -88,6 +89,7 @@ func TestTextSummary_WithErrors(t *testing.T) {
 [INFO] 
 [INFO] --- compiler:3.15.0:compile (default-compile) @ my-app ---
 [ERROR] COMPILATION ERROR
+[WARNING] Warning in module
 [INFO] src/main/java/App.java:10: error
 [INFO] ------------------------------------------------------------------------
 [INFO] Reactor Summary:
@@ -115,6 +117,7 @@ func TestTextSummary_MultipleModules(t *testing.T) {
 [INFO] --- clean:3.2.0:clean (default-clean) @ module-a ---
 [INFO] 
 [INFO] --- compiler:3.15.0:compile (default-compile) @ module-a ---
+[WARNING] Warning in module-a
 [INFO] Compiling module-a
 [INFO] 
 [INFO] ---< com.example:module-b >---
@@ -126,6 +129,7 @@ func TestTextSummary_MultipleModules(t *testing.T) {
 [INFO] 
 [INFO] --- compiler:3.15.0:compile (default-compile) @ module-b ---
 [ERROR] Error in module-b
+[WARNING] Warning in module-b
 [INFO] ------------------------------------------------------------------------
 [INFO] Reactor Summary:
 [INFO] module-a ....................................... SUCCESS [  0.500 s]
@@ -153,6 +157,7 @@ func TestTextSummary_MultipleModulesMultipleErrors(t *testing.T) {
 [INFO]
 [INFO] --- clean:3.2.0:clean (default-clean) @ module-a ---
 [ERROR] Error in module-a
+[WARNING] Warning in module-a
 [INFO]
 [INFO] --- compiler:3.15.0:compile (default-compile) @ module-a ---
 [ERROR] Another error
