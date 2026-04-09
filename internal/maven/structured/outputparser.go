@@ -186,18 +186,16 @@ func collectAllLines(node *Node) []string {
 	return lines
 }
 
-// StripLines removes the Lines field from all nodes except the root.
+// StripLines removes the Lines field from all nodes.
 // This is used for json-full output to reduce size.
 func StripLines(out *StructuredOutput) {
-	stripLinesRecursive(&out.Root, true)
+	stripLinesRecursive(&out.Root)
 }
 
-func stripLinesRecursive(node *Node, isRoot bool) {
-	if !isRoot {
-		node.Lines = nil
-	}
+func stripLinesRecursive(node *Node) {
+	node.Lines = nil
 	for i := range node.Children {
-		stripLinesRecursive(&node.Children[i], false)
+		stripLinesRecursive(&node.Children[i])
 	}
 }
 
