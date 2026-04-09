@@ -186,14 +186,45 @@ func enrichModuleMeta(node *Node) {
 		if node.Children[i].Type != "module" {
 			continue
 		}
-		moduleName := node.Children[i].Name
-		status, summary := moduleSummary(node.Children[i].Children, moduleName)
+		children := node.Children[i].Children
+		status, summary := computeModuleStatusSummary(children)
 		if node.Children[i].Meta == nil {
 			node.Children[i].Meta = make(map[string]any)
 		}
 		node.Children[i].Meta["status"] = status
 		node.Children[i].Meta["summary"] = summary
 	}
+}
+
+// computeModuleStatusSummary extracts status and summary from build block children.
+// Priority: FAILED > SUCCESS-WITH-WARNINGS > SUCCESS
+func computeModuleStatusSummary(children []Node) (status, summary string) {
+	var errs []string
+	var lastWarn, lastSucc string
+	for _, child := range children {
+		if child.Type != "build-block" {
+			continue
+		}
+		meta := child.Meta
+		st, _ := meta["status"].(string)
+		sm, _ := meta["summary"].(string)
+
+		if st == "FAILED" {
+			errs = append(errs, sm)
+		} else if st == "SUCCESS-WITH-WARNINGS" {
+			lastWarn = sm
+		} else {
+			lastSucc = sm
+		}
+	}
+
+	if len(errs) > 0 {
+		return "FAILED", strings.Join(errs, "\n")
+	}
+	if lastWarn != "" {
+		return "SUCCESS-WITH-WARNINGS", lastWarn
+	}
+	return "SUCCESS", lastSucc
 }
 
 // enrichSummaryMeta adds summary to the summary node using TextSummary output.

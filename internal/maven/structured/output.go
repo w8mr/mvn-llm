@@ -45,8 +45,7 @@ func CanInsert(parentType, childType string) bool {
 }
 
 // TextSummary generates a text summary from the structured output.
-// Per module: if WARNING join all warnings, else take last build phase with that status.
-// On FAILURE, only show modules with errors (not successful modules).
+// Uses the pre-enriched status and summary from module meta.
 func TextSummary(out *StructuredOutput) string {
 	var moduleErrs, moduleWarnSucc []string
 	overallStatus := "SUCCESS"
@@ -57,7 +56,9 @@ func TextSummary(out *StructuredOutput) string {
 		}
 
 		moduleName := child.Name
-		status, summary := moduleSummary(child.Children, moduleName)
+		meta := child.Meta
+		status, _ := meta["status"].(string)
+		summary, _ := meta["summary"].(string)
 
 		if status == "FAILED" {
 			if overallStatus != "FAILURE" {
@@ -75,7 +76,6 @@ func TextSummary(out *StructuredOutput) string {
 	}
 
 	var lines []string
-	// On FAILURE, only show modules with errors
 	if overallStatus == "FAILURE" {
 		for i, m := range moduleErrs {
 			if i > 0 {
@@ -84,12 +84,7 @@ func TextSummary(out *StructuredOutput) string {
 			lines = append(lines, m)
 		}
 	} else if len(moduleErrs) > 0 && len(moduleWarnSucc) > 0 {
-		for i, m := range moduleErrs {
-			if i > 0 {
-				lines = append(lines, "")
-			}
-			lines = append(lines, m)
-		}
+		lines = append(lines, moduleErrs...)
 		lines = append(lines, "")
 		lines = append(lines, moduleWarnSucc...)
 	} else if len(moduleErrs) > 0 {
@@ -102,37 +97,4 @@ func TextSummary(out *StructuredOutput) string {
 		return "Failure:\n" + strings.Join(lines, "\n")
 	}
 	return "Successful:\n" + strings.Join(lines, "\n")
-}
-
-// moduleSummary returns status and summary for a module.
-// Collects all errors, otherwise takes last warning or success.
-// Priority: FAILED > SUCCESS-WITH-WARNINGS > SUCCESS
-func moduleSummary(children []Node, moduleName string) (status, summary string) {
-	var errs []string
-	var lastWarn, lastSucc string
-	for _, child := range children {
-		if child.Type != "build-block" {
-			continue
-		}
-		meta := child.Meta
-		st, _ := meta["status"].(string)
-		sm, _ := meta["summary"].(string)
-
-		if st == "FAILED" {
-			errs = append(errs, sm)
-		} else if st == "SUCCESS-WITH-WARNINGS" {
-			lastWarn = sm
-		} else {
-			lastSucc = sm
-		}
-	}
-
-	// Priority: FAILED > SUCCESS-WITH-WARNINGS > SUCCESS
-	if len(errs) > 0 {
-		return "FAILED", strings.Join(errs, "\n")
-	}
-	if lastWarn != "" {
-		return "SUCCESS-WITH-WARNINGS", lastWarn
-	}
-	return "SUCCESS", lastSucc
 }
