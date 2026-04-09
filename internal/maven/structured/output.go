@@ -74,10 +74,12 @@ func TextSummary(out *StructuredOutput) string {
 	}
 
 	var lines []string
-	if len(moduleErrs) > 0 {
+	if len(moduleErrs) > 0 && len(moduleWarnSucc) > 0 {
 		lines = append(lines, moduleNamePrefix(moduleErrs)...)
 		lines = append(lines, "")
 		lines = append(lines, moduleNamePrefix(moduleWarnSucc)...)
+	} else if len(moduleErrs) > 0 {
+		lines = append(lines, moduleNamePrefix(moduleErrs)...)
 	} else {
 		lines = append(lines, moduleNamePrefix(moduleWarnSucc)...)
 	}
@@ -89,9 +91,7 @@ func TextSummary(out *StructuredOutput) string {
 }
 
 // moduleSummary returns status and summary for a module.
-// - If any FAILED: take last FAILED
-// - Else if any SUCCESS-WITH-WARNINGS: take last SUCCESS-WITH-WARNINGS
-// - Else take last SUCCESS
+// Priority: last with highest status: FAILED > SUCCESS-WITH-WARNINGS > SUCCESS
 func moduleSummary(children []Node, moduleName string) (status, summary string) {
 	var lastErr, lastWarn, lastSucc string
 	for _, child := range children {
@@ -118,6 +118,7 @@ func moduleSummary(children []Node, moduleName string) (status, summary string) 
 		}
 	}
 
+	// Priority: FAILED > SUCCESS-WITH-WARNINGS > SUCCESS
 	if lastErr != "" {
 		return "FAILED", lastErr
 	}
