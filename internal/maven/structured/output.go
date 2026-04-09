@@ -77,9 +77,19 @@ func TextSummary(out *StructuredOutput) string {
 	var lines []string
 	// On FAILURE, only show modules with errors
 	if overallStatus == "FAILURE" {
-		lines = append(lines, moduleErrs...)
+		for i, m := range moduleErrs {
+			if i > 0 {
+				lines = append(lines, "")
+			}
+			lines = append(lines, m)
+		}
 	} else if len(moduleErrs) > 0 && len(moduleWarnSucc) > 0 {
-		lines = append(lines, moduleErrs...)
+		for i, m := range moduleErrs {
+			if i > 0 {
+				lines = append(lines, "")
+			}
+			lines = append(lines, m)
+		}
 		lines = append(lines, "")
 		lines = append(lines, moduleWarnSucc...)
 	} else if len(moduleErrs) > 0 {
@@ -95,9 +105,11 @@ func TextSummary(out *StructuredOutput) string {
 }
 
 // moduleSummary returns status and summary for a module.
-// Priority: last with highest status: FAILED > SUCCESS-WITH-WARNINGS > SUCCESS
+// Collects all errors, otherwise takes last warning or success.
+// Priority: FAILED > SUCCESS-WITH-WARNINGS > SUCCESS
 func moduleSummary(children []Node, moduleName string) (status, summary string) {
-	var lastErr, lastWarn, lastSucc string
+	var errs []string
+	var lastWarn, lastSucc string
 	for _, child := range children {
 		if child.Type != "build-block" {
 			continue
@@ -114,7 +126,7 @@ func moduleSummary(children []Node, moduleName string) (status, summary string) 
 		}
 
 		if st == "FAILED" {
-			lastErr = sm
+			errs = append(errs, sm)
 		} else if st == "SUCCESS-WITH-WARNINGS" {
 			lastWarn = sm
 		} else {
@@ -123,8 +135,8 @@ func moduleSummary(children []Node, moduleName string) (status, summary string) 
 	}
 
 	// Priority: FAILED > SUCCESS-WITH-WARNINGS > SUCCESS
-	if lastErr != "" {
-		return "FAILED", lastErr
+	if len(errs) > 0 {
+		return "FAILED", strings.Join(errs, "\n")
 	}
 	if lastWarn != "" {
 		return "SUCCESS-WITH-WARNINGS", lastWarn
