@@ -145,17 +145,21 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 	return &root, len(lines), true
 }
 
+// ParseConfig holds configuration options for parsing.
+type ParseConfig map[string]any
+
 // ParseOutput parses Maven log lines into a StructuredOutput with a hierarchical Node tree.
 // This is the main entry point for parsing Maven output.
-func (p *OutputParser) ParseOutput(lines []string, err error) *StructuredOutput {
-	return p.ParseOutputStrict(lines, false, err)
+func (p *OutputParser) ParseOutput(lines []string, err error, config ParseConfig) *StructuredOutput {
+	return p.ParseOutputStrict(lines, false, err, config)
 }
 
 // ParseOutputStrict parses Maven log lines and optionally verifies no lines were lost.
 // If strict=true, it compares original and parsed lines; on mismatch, it prints an error
 // and exits. Use strict mode for debugging parsing issues.
 // If err is not nil, it is added to the root meta as "error".
-func (p *OutputParser) ParseOutputStrict(lines []string, strict bool, err error) *StructuredOutput {
+// config can hold additional options like depFilter, depAncestor, depVerbose.
+func (p *OutputParser) ParseOutputStrict(lines []string, strict bool, err error, config ParseConfig) *StructuredOutput {
 	root, _, ok := p.Parse(lines, 0)
 
 	if err != nil {

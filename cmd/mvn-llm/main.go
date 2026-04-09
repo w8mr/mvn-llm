@@ -46,10 +46,13 @@ func mainLogic() {
 	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
 	depVerbose := flag.Bool("dep-verbose", false, "Show verbose dependency tree")
 	noStrict := flag.Bool("no-strict", false, "Disable strict parsing")
-	_ = depFilter
-	_ = depAncestor
-	_ = depVerbose
 	flag.Parse()
+
+	parseConfig := structured.ParseConfig{
+		"depFilter":   *depFilter,
+		"depAncestor": *depAncestor,
+		"depVerbose":  *depVerbose,
+	}
 
 	if *goal == "" {
 		fmt.Fprintln(os.Stderr, "Usage: mvn-llm -goal <goal> [flags]")
@@ -80,7 +83,7 @@ func mainLogic() {
 		if outType == "structured-json" {
 			if outStr, ok := mvnOut.(string); ok {
 				parser := structured.NewOutputParser()
-				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict, mvnErr)
+				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict, mvnErr, parseConfig)
 				jsonBytes, err := marshalStructuredJSON(structuredOut)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Failed to encode structured JSON: %v\n", err)
@@ -97,7 +100,7 @@ func mainLogic() {
 		if outType == "json" {
 			if outStr, ok := mvnOut.(string); ok {
 				parser := structured.NewOutputParser()
-				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict, mvnErr)
+				structuredOut := parser.ParseOutputStrict(splitLines(outStr), !*noStrict, mvnErr, parseConfig)
 				jsonBytes, err := marshalStructuredJSON(structuredOut)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Failed to encode JSON: %v\n", err)
