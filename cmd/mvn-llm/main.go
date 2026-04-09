@@ -77,13 +77,13 @@ func mainLogic() {
 	mvnOut, mvnErr = intent.HandleMavenGoal(ctx, *projectRoot, *goal, opts, "structured-json")
 
 	outputTypes := strings.Split(*output, ",")
-	hasMavenOutput := false
 
 	for _, outType := range outputTypes {
 		outType = strings.TrimSpace(outType)
 		if outType == "maven-output" {
-			hasMavenOutput = true
-			continue
+			if outStr, ok := mvnOut.(string); ok {
+				fmt.Print(outStr)
+			}
 		}
 		if outType == "structured-json" {
 			if outStr, ok := mvnOut.(string); ok {
@@ -122,14 +122,6 @@ func mainLogic() {
 				}
 			}
 		}
-	}
-
-	if hasMavenOutput {
-		fmt.Println("---MAVEN OUTPUT START---")
-		if outStr, ok := mvnOut.(string); ok {
-			fmt.Print(outStr)
-		}
-		fmt.Println("---MAVEN OUTPUT END---")
 	}
 
 	if mvnErr != nil {
