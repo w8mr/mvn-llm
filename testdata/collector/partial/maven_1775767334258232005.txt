@@ -1,0 +1,216 @@
+Mock Version: 1.2.17
+ENTER ['do'](['bash', '--login', '-c', '/usr/bin/rpmbuild -bs --target i686 --nodeps /builddir/build/SPECS/hawtjni.spec'], chrootPath='/var/lib/mock/hawtjni-1.6-10.el7-20190812144132-1926/root'shell=FalseprintOutput=Falseenv={'LANG': 'en_GB.UTF-8', 'TERM': 'vt100', 'SHELL': '/bin/bash', 'PROMPT_COMMAND': 'printf "\x1b]0;<mock-chroot>\x07<mock-chroot>"', 'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'HOME': '/builddir', 'HOSTNAME': 'mock'}gid=135user='mockbuild'timeout=0logger=<mockbuild.trace_decorator.getLog object at 0x7f23c34f7150>uid=1005)
+Executing command: ['bash', '--login', '-c', '/usr/bin/rpmbuild -bs --target i686 --nodeps /builddir/build/SPECS/hawtjni.spec'] with env {'LANG': 'en_GB.UTF-8', 'TERM': 'vt100', 'SHELL': '/bin/bash', 'PROMPT_COMMAND': 'printf "\x1b]0;<mock-chroot>\x07<mock-chroot>"', 'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'HOME': '/builddir', 'HOSTNAME': 'mock'} and shell False
+Building target platforms: i686
+Building for target i686
+Wrote: /builddir/build/SRPMS/hawtjni-1.6-10.el7.src.rpm
+Child return code was: 0
+ENTER ['do'](['bash', '--login', '-c', u'/usr/bin/rpmbuild -bb --target i686 --nodeps /builddir/build/SPECS/hawtjni.spec'], chrootPath='/var/lib/mock/hawtjni-1.6-10.el7-20190812144132-1926/root'shell=Falseuid=1005env={'LANG': 'en_GB.UTF-8', 'TERM': 'vt100', 'SHELL': '/bin/bash', 'PROMPT_COMMAND': 'printf "\x1b]0;<mock-chroot>\x07<mock-chroot>"', 'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'HOME': '/builddir', 'HOSTNAME': 'mock'}gid=135user='mockbuild'timeout=0private_network=Truelogger=<mockbuild.trace_decorator.getLog object at 0x7f23c34f7150>printOutput=False)
+Executing command: ['bash', '--login', '-c', u'/usr/bin/rpmbuild -bb --target i686 --nodeps /builddir/build/SPECS/hawtjni.spec'] with env {'LANG': 'en_GB.UTF-8', 'TERM': 'vt100', 'SHELL': '/bin/bash', 'PROMPT_COMMAND': 'printf "\x1b]0;<mock-chroot>\x07<mock-chroot>"', 'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'HOME': '/builddir', 'HOSTNAME': 'mock'} and shell False
+Building target platforms: i686
+Building for target i686
+Executing(%prep): /bin/sh -e /var/tmp/rpm-tmp.hqgOQa
++ umask 022
++ cd /builddir/build/BUILD
++ cd /builddir/build/BUILD
++ rm -rf hawtjni-1.6
++ /usr/bin/xz -dc /builddir/build/SOURCES/hawtjni-1.6.tar.xz
++ /usr/bin/tar -xf -
++ STATUS=0
++ '[' 0 -ne 0 ']'
++ cd hawtjni-1.6
++ /usr/bin/chmod -Rf a+rX,u+w,g-w,o-w .
++ echo 'Patch #0 (0001-Fix-shading-and-remove-unneeded-modules.patch):'
+Patch #0 (0001-Fix-shading-and-remove-unneeded-modules.patch):
++ /usr/bin/cat /builddir/build/SOURCES/0001-Fix-shading-and-remove-unneeded-modules.patch
++ /usr/bin/patch -p1 --fuzz=0
+patching file hawtjni-generator/pom.xml
+patching file maven-hawtjni-plugin/pom.xml
+patching file pom.xml
+Patch #1 (0002-Fix-xbean-compatibility.patch):
++ echo 'Patch #1 (0002-Fix-xbean-compatibility.patch):'
++ /usr/bin/cat /builddir/build/SOURCES/0002-Fix-xbean-compatibility.patch
++ /usr/bin/patch -p1 --fuzz=0
+patching file hawtjni-generator/src/main/java/org/fusesource/hawtjni/generator/HawtJNI.java
++ echo 'Patch #2 (0003-Remove-plexus-maven-plugin-dependency.patch):'
+Patch #2 (0003-Remove-plexus-maven-plugin-dependency.patch):
++ /usr/bin/cat /builddir/build/SOURCES/0003-Remove-plexus-maven-plugin-dependency.patch
++ /usr/bin/patch -p1 --fuzz=0
+patching file maven-hawtjni-plugin/pom.xml
+Patch #3 (0004-Remove-eclipse-plugin.patch):
++ echo 'Patch #3 (0004-Remove-eclipse-plugin.patch):'
++ /usr/bin/cat /builddir/build/SOURCES/0004-Remove-eclipse-plugin.patch
++ /usr/bin/patch -p1 --fuzz=0
+patching file pom.xml
++ echo 'Patch #4 (0005-Should-fix-issue-7.-We-now-do-a-write-barrier-before.patch):'
+Patch #4 (0005-Should-fix-issue-7.-We-now-do-a-write-barrier-before.patch):
++ /usr/bin/cat /builddir/build/SOURCES/0005-Should-fix-issue-7.-We-now-do-a-write-barrier-before.patch
++ /usr/bin/patch -p1 --fuzz=0
+patching file hawtjni-generator/src/main/java/org/fusesource/hawtjni/generator/StructsGenerator.java
+patching file hawtjni-generator/src/main/resources/hawtjni.h
++ echo 'Patch #5 (0006-Simplify-shared-lib-extraction.patch):'
+Patch #5 (0006-Simplify-shared-lib-extraction.patch):
++ /usr/bin/cat /builddir/build/SOURCES/0006-Simplify-shared-lib-extraction.patch
++ /usr/bin/patch -p1 --fuzz=0
+patching file hawtjni-runtime/src/main/java/org/fusesource/hawtjni/runtime/Library.java
++ python /usr/share/java-utils/mvn_file.py ':{*}' @1
++ python /usr/share/java-utils/mvn_package.py ':*{plugin}' @1
++ exit 0
+Executing(%build): /bin/sh -e /var/tmp/rpm-tmp.LdScfI
++ umask 022
++ cd /builddir/build/BUILD
++ cd hawtjni-1.6
++ python /usr/share/java-utils/mvn_build.py -n hawtjni
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] HawtJNI
+[INFO] HawtJNI Runtime
+[INFO] HawtJNI Generator
+[INFO] HawtJNI Maven Plugin
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building HawtJNI 1.6
+[INFO] ------------------------------------------------------------------------
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building HawtJNI Runtime 1.6
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ hawtjni-runtime ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.1:compile (default-compile) @ hawtjni-runtime ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 14 source files to /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/classes
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ hawtjni-runtime ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.1:testCompile (default-testCompile) @ hawtjni-runtime ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.15:test (default-test) @ hawtjni-runtime ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- maven-jar-plugin:2.4:jar (default-jar) @ hawtjni-runtime ---
+[INFO] Building jar: /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/hawtjni-runtime-1.6.jar
+[INFO] 
+[INFO] --- maven-javadoc-plugin:2.9:jar (attach-javadocs) @ hawtjni-runtime ---
+[INFO] 
+Loading source files for package org.fusesource.hawtjni.runtime...
+Constructing Javadoc information...
+Standard Doclet version 1.8.0_222
+Building tree for all the packages and classes...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/ArgFlag.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/Callback.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/ClassFlag.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/FieldFlag.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/JniArg.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/JniClass.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/JNIEnv.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/JniField.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/JniMethod.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/Library.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/MethodFlag.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/NativeStats.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/NativeStats.NativeFunction.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/NativeStats.StatsInterface.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/PointerMath.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/T32.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/package-frame.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/package-summary.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/package-tree.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/constant-values.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/PointerMath.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/Callback.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/ClassFlag.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/T32.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/JNIEnv.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/JniMethod.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/NativeStats.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/NativeStats.StatsInterface.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/NativeStats.NativeFunction.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/Library.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/JniArg.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/JniClass.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/MethodFlag.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/ArgFlag.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/JniField.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/class-use/FieldFlag.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/org/fusesource/hawtjni/runtime/package-use.html...
+Building index for all the packages and classes...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/overview-tree.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/index-all.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/deprecated-list.html...
+Building index for all classes...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/allclasses-frame.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/allclasses-noframe.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/index.html...
+Generating /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs/help-doc.html...
+4 errors
+1 warning
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Skipping HawtJNI
+[INFO] This project has been banned from the build due to previous failures.
+[INFO] ------------------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO] 
+[INFO] HawtJNI ........................................... SUCCESS [0.001s]
+[INFO] HawtJNI Runtime ................................... FAILURE [2.813s]
+[INFO] HawtJNI Generator ................................. SKIPPED
+[INFO] HawtJNI Maven Plugin .............................. SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 3.057s
+[INFO] Finished at: Mon Aug 12 14:49:48 UTC 2019
+[INFO] Final Memory: 15M/188M
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-javadoc-plugin:2.9:jar (attach-javadocs) on project hawtjni-runtime: MavenReportException: Error while creating archive:
+[ERROR] Exit code: 1 - /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/src/main/java/org/fusesource/hawtjni/runtime/ArgFlag.java:36: error: unknown tag: PrimitiveType
+[ERROR] * of Get<PrimitiveType>ArrayElements() when transferring array of
+[ERROR] ^
+[ERROR] /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/src/main/java/org/fusesource/hawtjni/runtime/MethodFlag.java:53: error: bad HTML entity
+[ERROR] * done by prepending &.
+[ERROR] ^
+[ERROR] /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/src/main/java/org/fusesource/hawtjni/runtime/NativeStats.java:162: warning: no description for @param
+[ERROR] * @param ps
+[ERROR] ^
+[ERROR] /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/src/main/java/org/fusesource/hawtjni/runtime/NativeStats.java:27: error: block element not allowed within inline element <code>: pre
+[ERROR] *      <code><pre>
+[ERROR] ^
+[ERROR] /builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/src/main/java/org/fusesource/hawtjni/runtime/NativeStats.java:36: error: block element not allowed within inline element <code>: pre
+[ERROR] *      <code><pre>
+[ERROR] ^
+[ERROR] 
+[ERROR] Command line was: /usr/lib/jvm/java-1.8.0-openjdk-1.8.0.222.b10-0.el7_6.i386/jre/../bin/javadoc @options @packages
+[ERROR] 
+[ERROR] Refer to the generated Javadoc files in '/builddir/build/BUILD/hawtjni-1.6/hawtjni-runtime/target/apidocs' dir.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <goals> -rf :hawtjni-runtime
+error: Bad exit status from /var/tmp/rpm-tmp.LdScfI (%build)
+    Bad exit status from /var/tmp/rpm-tmp.LdScfI (%build)
+RPM build errors:
+Child return code was: 1
+EXCEPTION: [Error()]
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/site-packages/mockbuild/trace_decorator.py", line 88, in trace
+    result = func(*args, **kw)
+  File "/usr/lib/python2.7/site-packages/mockbuild/util.py", line 547, in do
+    raise exception.Error("Command failed. See logs for output.\n # %s" % (command,), child.returncode)
+Error: Command failed. See logs for output.
+ # bash --login -c /usr/bin/rpmbuild -bb --target i686 --nodeps /builddir/build/SPECS/hawtjni.spec
