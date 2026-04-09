@@ -46,11 +46,14 @@ func (p *BuildPhaseParser) ExtractSummary(found []string) string {
 			continue
 		}
 		if strings.HasPrefix(l, "[ERROR] ") && len(l) > 8 {
-			lastError = l[8:]
+			lastError = strings.TrimSpace(l[8:])
 		} else if strings.HasPrefix(l, "[WARNING] ") && len(l) > 10 {
-			lastWarning = l[10:]
+			lastWarning = strings.TrimSpace(l[10:])
 		} else if strings.HasPrefix(l, "[INFO] ") && len(l) > 6 {
-			lastInfo = l[6:]
+			info := strings.TrimSpace(l[6:])
+			if info != "" {
+				lastInfo = info
+			}
 		}
 	}
 
