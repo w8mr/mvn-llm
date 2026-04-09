@@ -46,6 +46,9 @@ func mainLogic() {
 	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
 	depVerbose := flag.Bool("dep-verbose", false, "Show verbose dependency tree")
 	noStrict := flag.Bool("no-strict", false, "Disable strict parsing")
+	_ = depFilter
+	_ = depAncestor
+	_ = depVerbose
 	flag.Parse()
 
 	if *goal == "" {
@@ -59,19 +62,6 @@ func mainLogic() {
 	opts := maven.MavenOpts{
 		NoClean:    *noClean,
 		ResumeFrom: *resumeFrom,
-	}
-	if *goal == "deps" {
-		depsHandler := intent.DepsHandler{
-			Filter:       *depFilter,
-			ShowAncestor: *depAncestor,
-			Verbose:      *depVerbose,
-		}
-		mvnOut, mvnErr = intent.HandleDeps(ctx, *projectRoot, opts, depsHandler)
-		fmt.Println(mvnOut)
-		if mvnErr != nil {
-			os.Exit(1)
-		}
-		return
 	}
 	mvnOut, mvnErr = intent.HandleMavenGoal(ctx, *projectRoot, *goal, opts, "structured-json")
 
