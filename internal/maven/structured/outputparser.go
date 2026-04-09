@@ -176,16 +176,6 @@ func (p *OutputParser) ParseOutput(lines []string, err error, config ParseConfig
 	return &StructuredOutput{Root: *root}
 }
 
-// ParseOutputStrict is kept for backward compatibility.
-// It internally uses ParseOutput with config containing noStrict.
-func (p *OutputParser) ParseOutputStrict(lines []string, strict bool, err error) *StructuredOutput {
-	config := ParseConfig{}
-	if !strict {
-		config["noStrict"] = true
-	}
-	return p.ParseOutput(lines, err, config)
-}
-
 // collectAllLines recursively collects all lines from a node and its children.
 func collectAllLines(node *Node) []string {
 	var lines []string
