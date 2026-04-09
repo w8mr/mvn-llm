@@ -10,3 +10,6 @@ out/
 
 # Test output
 testdata/**/target/
+
+# Collected examples (local analysis only)
+testdata/collector/
