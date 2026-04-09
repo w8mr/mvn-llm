@@ -66,7 +66,7 @@ func mainLogic() {
 		NoClean:    *noClean,
 		ResumeFrom: *resumeFrom,
 	}
-	mvnOut, mvnErr = intent.HandleMavenGoal(ctx, *projectRoot, *goal, opts, "structured-json")
+	mvnOut, mvnErr = intent.HandleMavenGoal(ctx, *projectRoot, *goal, opts)
 
 	outputTypes := strings.Split(*output, ",")
 

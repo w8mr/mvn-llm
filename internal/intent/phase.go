@@ -7,8 +7,7 @@ import (
 
 // HandleMavenPhaseIntent runs any Maven phase/goal, parses output if recognized, otherwise returns raw output.
 // Returns a structured result for known phases: dependency:tree, build, test. Otherwise returns raw output (as string).
-// parseMode: "structured-json" only
-func HandleMavenPhaseIntent(ctx context.Context, projectRoot string, phase string, opts maven.MavenOpts, parseMode ...string) (interface{}, error) {
+func HandleMavenPhaseIntent(ctx context.Context, projectRoot string, phase string, opts maven.MavenOpts) (interface{}, error) {
 	goal := phase
 
 	args := []string{goal}
