@@ -81,7 +81,7 @@ Recommended flags for LLMs:
 - **text (`-o text`):** Human-readable summary
 - **json (`-o json`):** Simple JSON with status, summary, and failed modules
 - **json-full (`-o json-full`):** Full structured JSON without line data
-- **json-full-with-lines (`-o json-full-with-lines`):** Full structured JSON with lines (default)
+- **json-full-with-lines (`-o json-full-with-lines`):** Full structured JSON with lines
 - **maven-output (`-o maven-output`):** Raw Maven output
 
 ### Examples for LLMs
