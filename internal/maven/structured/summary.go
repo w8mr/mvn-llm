@@ -18,6 +18,7 @@ func (p *SummaryPhaseParser) NodeType() string {
 
 // ExtractLines finds the summary section starting at startIdx.
 // Returns lines from startIdx to end of slice.
+// Summary is always at the end of Maven output, preceded by [INFO] ------------------------------------------------------------------------.
 func (p *SummaryPhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
 	if startIdx >= len(lines) {
 		return nil, 0, false
@@ -26,19 +27,7 @@ func (p *SummaryPhaseParser) ExtractLines(lines []string, startIdx int) ([]strin
 		return nil, 0, false
 	}
 
-	// Scan forward to find "Reactor Summary"
-	foundSummaryStart := false
-	for i := startIdx; i < startIdx+3 && i < len(lines); i++ {
-		if isReactorSummaryFor(lines[i]) {
-			foundSummaryStart = true
-			break
-		}
-	}
-	if !foundSummaryStart {
-		return nil, 0, false
-	}
-
-	// Return everything to end of file
+	// Summary is always at end of file, just return everything from here
 	end := len(lines)
 	if end > startIdx && strings.TrimSpace(lines[end-1]) == "" {
 		end--
