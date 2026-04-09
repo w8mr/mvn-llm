@@ -50,12 +50,11 @@ func main() {
 	count := 0
 
 	queries := []string{
-		"maven build output \"BUILD SUCCESS\" log",
-		"maven test failure \"BUILD FAILURE\" CI log",
-		"maven compile error build log",
-		"Travis CI maven build output",
-		"Jenkins maven build log",
-		"GitHub Actions maven build log",
+		"maven build log filetype:log BUILD SUCCESS",
+		"maven test failure \"BUILD FAILURE\" filetype:log",
+		"maven CI build output.txt",
+		"maven test output log.txt",
+		"pom.xml mvn test output",
 	}
 
 	for iteration := 0; iteration < *maxIterations && count < *maxExamples; iteration++ {
