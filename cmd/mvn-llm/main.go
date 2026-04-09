@@ -14,9 +14,14 @@ import (
 	structured "github.com/agentic-ai/mvn-llm/internal/maven/structured"
 )
 
-// Helper to split string into lines
+// Helper to split string into lines, trimming trailing empty lines
 func splitLines(s string) []string {
-	return strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.TrimRight(s, "\n")
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, "\n")
 }
 
 // Helper to marshal any struct to pretty JSON

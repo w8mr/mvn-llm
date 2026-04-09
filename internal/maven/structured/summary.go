@@ -27,9 +27,9 @@ func (p *SummaryPhaseParser) ExtractLines(lines []string, startIdx int) ([]strin
 		return nil, 0, false
 	}
 
-	// Summary is always at end of file, just return everything from here
+	// Summary is always at end of file, trim trailing empty lines
 	end := len(lines)
-	if end > startIdx && strings.TrimSpace(lines[end-1]) == "" {
+	for end > startIdx && strings.TrimSpace(lines[end-1]) == "" {
 		end--
 	}
 	return lines[startIdx:end], end - startIdx, true

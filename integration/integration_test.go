@@ -32,6 +32,14 @@ func TestMvnLlmStructuredJsonInstallSuccess(t *testing.T) {
 	if len(out.Root.Children) < 2 {
 		t.Errorf("Expected at least 2 children, got %d", len(out.Root.Children))
 	}
+
+	// Check for unparsable nodes - should be none
+	for _, child := range out.Root.Children {
+		if child.Type == "unparsable" {
+			t.Errorf("Found unparsable node with lines: %v", child.Lines)
+		}
+	}
+
 	found := false
 	for _, child := range out.Root.Children {
 		if child.Type == "summary" {
