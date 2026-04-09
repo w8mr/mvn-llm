@@ -1,7 +1,5 @@
 package structured
 
-import "strings"
-
 // Node represents a parsed section of Maven log output.
 // It forms a tree structure where each node may have children.
 // Parent is a back-reference for traversal (not serialized).
@@ -45,56 +43,20 @@ func CanInsert(parentType, childType string) bool {
 }
 
 // TextSummary generates a text summary from the structured output.
-// Uses the pre-enriched status and summary from module meta.
+// Uses the pre-enriched summary node's meta.
 func TextSummary(out *StructuredOutput) string {
-	var moduleErrs, moduleWarnSucc []string
-	overallStatus := "SUCCESS"
-
 	for _, child := range out.Root.Children {
-		if child.Type != "module" {
+		if child.Type != "summary" {
 			continue
 		}
-
-		moduleName := child.Name
 		meta := child.Meta
-		status, _ := meta["status"].(string)
+		overallStatus, _ := meta["overallStatus"].(string)
 		summary, _ := meta["summary"].(string)
 
-		if status == "FAILED" {
-			if overallStatus != "FAILURE" {
-				overallStatus = "FAILURE"
-			}
-			moduleErrs = append(moduleErrs, moduleName+":\n"+summary)
-		} else if status == "SUCCESS-WITH-WARNINGS" {
-			if overallStatus == "SUCCESS" {
-				overallStatus = "SUCCESS-WITH-WARNINGS"
-			}
-			moduleWarnSucc = append(moduleWarnSucc, moduleName+":\n"+summary)
-		} else {
-			moduleWarnSucc = append(moduleWarnSucc, moduleName+":\n"+summary)
+		if overallStatus == "BUILD FAILURE" {
+			return "Failure:\n" + summary
 		}
+		return "Successful:\n" + summary
 	}
-
-	var lines []string
-	if overallStatus == "FAILURE" {
-		for i, m := range moduleErrs {
-			if i > 0 {
-				lines = append(lines, "")
-			}
-			lines = append(lines, m)
-		}
-	} else if len(moduleErrs) > 0 && len(moduleWarnSucc) > 0 {
-		lines = append(lines, moduleErrs...)
-		lines = append(lines, "")
-		lines = append(lines, moduleWarnSucc...)
-	} else if len(moduleErrs) > 0 {
-		lines = append(lines, moduleErrs...)
-	} else {
-		lines = append(lines, moduleWarnSucc...)
-	}
-
-	if overallStatus == "FAILURE" {
-		return "Failure:\n" + strings.Join(lines, "\n")
-	}
-	return "Successful:\n" + strings.Join(lines, "\n")
+	return "Successful:\n"
 }

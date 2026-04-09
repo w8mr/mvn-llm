@@ -227,21 +227,60 @@ func computeModuleStatusSummary(children []Node) (status, summary string) {
 	return "SUCCESS", lastSucc
 }
 
-// enrichSummaryMeta adds summary to the summary node using TextSummary output.
+// enrichSummaryMeta adds summary to the summary node from module meta.
 func enrichSummaryMeta(node *Node) {
+	var errs, warnSucc []string
+	overallStatus := "SUCCESS"
+
+	for _, child := range node.Children {
+		if child.Type != "module" {
+			continue
+		}
+		meta := child.Meta
+		status, _ := meta["status"].(string)
+		summary, _ := meta["summary"].(string)
+
+		if status == "FAILED" {
+			if overallStatus != "FAILURE" {
+				overallStatus = "FAILURE"
+			}
+			errs = append(errs, child.Name+":\n"+summary)
+		} else if status == "SUCCESS-WITH-WARNINGS" {
+			if overallStatus == "SUCCESS" {
+				overallStatus = "SUCCESS-WITH-WARNINGS"
+			}
+			warnSucc = append(warnSucc, child.Name+":\n"+summary)
+		} else {
+			warnSucc = append(warnSucc, child.Name+":\n"+summary)
+		}
+	}
+
+	var lines []string
+	if overallStatus == "FAILURE" {
+		for i, m := range errs {
+			if i > 0 {
+				lines = append(lines, "")
+			}
+			lines = append(lines, m)
+		}
+	} else if len(errs) > 0 && len(warnSucc) > 0 {
+		lines = append(lines, errs...)
+		lines = append(lines, "")
+		lines = append(lines, warnSucc...)
+	} else if len(errs) > 0 {
+		lines = append(lines, errs...)
+	} else {
+		lines = append(lines, warnSucc...)
+	}
+
 	for i := range node.Children {
 		if node.Children[i].Type != "summary" {
 			continue
 		}
-		text := TextSummary(&StructuredOutput{Root: *node})
-		lines := strings.Split(text, "\n")
-		if len(lines) > 1 {
-			summary := strings.Join(lines[1:], "\n")
-			if node.Children[i].Meta == nil {
-				node.Children[i].Meta = make(map[string]any)
-			}
-			node.Children[i].Meta["summary"] = summary
+		if node.Children[i].Meta == nil {
+			node.Children[i].Meta = make(map[string]any)
 		}
+		node.Children[i].Meta["summary"] = strings.Join(lines, "\n")
 		break
 	}
 }
