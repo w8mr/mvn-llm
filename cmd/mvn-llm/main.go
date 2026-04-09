@@ -96,7 +96,7 @@ func mainLogic() {
 					if structuredOut.Root.Meta == nil {
 						structuredOut.Root.Meta = make(map[string]any)
 					}
-					structuredOut.Root.Meta["error"] = mvnErr
+					structuredOut.Root.Meta["error"] = mvnErr.Error()
 				}
 				jsonBytes, err := marshalStructuredJSON(structuredOut)
 				if err != nil {
@@ -123,7 +123,7 @@ func mainLogic() {
 					if structuredOut.Root.Meta == nil {
 						structuredOut.Root.Meta = make(map[string]any)
 					}
-					structuredOut.Root.Meta["error"] = mvnErr
+					structuredOut.Root.Meta["error"] = mvnErr.Error()
 				}
 				jsonBytes, err := marshalStructuredJSON(structuredOut)
 				if err != nil {
