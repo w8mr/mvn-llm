@@ -287,3 +287,63 @@ func findChildByName(children []Node, name string) *Node {
 	}
 	return nil
 }
+
+func TestBuildPhaseParser_ExtractSummary(t *testing.T) {
+	p := &BuildPhaseParser{}
+
+	tests := []struct {
+		name     string
+		lines    []string
+		expected string
+	}{
+		{
+			name: "last info line",
+			lines: []string{
+				"[INFO] --- maven-compiler-plugin:3.15.0:compile (default-compile) @ my-app ---",
+				"[INFO] Compiling 1 source file",
+				"[INFO] ",
+			},
+			expected: "Successful: Compiling 1 source file",
+		},
+		{
+			name: "last warning line",
+			lines: []string{
+				"[INFO] --- maven-compiler-plugin:3.15.0:compile (default-compile) @ my-app ---",
+				"[WARNING] Some warning",
+				"[INFO] Compiling 1 source file",
+			},
+			expected: "Successful: Some warning",
+		},
+		{
+			name: "last error line",
+			lines: []string{
+				"[INFO] --- maven-compiler-plugin:3.15.0:compile (default-compile) @ my-app ---",
+				"[INFO] Something failed",
+				"[ERROR] Compilation failure",
+			},
+			expected: "Failure: Compilation failure",
+		},
+		{
+			name:     "empty content",
+			lines:    []string{"[INFO] --- maven-compiler-plugin:3.15.0:compile @ my-app ---"},
+			expected: "Successful",
+		},
+		{
+			name: "only header with empty info",
+			lines: []string{
+				"[INFO] --- maven-compiler-plugin:3.15.0:compile (default-compile) @ my-app ---",
+				"[INFO] ",
+			},
+			expected: "Successful",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := p.ExtractSummary(tc.lines)
+			if result != tc.expected {
+				t.Errorf("ExtractSummary(%v) = %q, want %q", tc.name, result, tc.expected)
+			}
+		})
+	}
+}

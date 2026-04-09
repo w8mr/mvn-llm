@@ -37,11 +37,15 @@ func (p *BuildPhaseParser) ExtractLines(lines []string, startIdx int) ([]string,
 
 // ExtractSummary extracts a summary line from the found lines.
 // Priority: last ERROR line → last WARNING line → last INFO line.
-// Format: "Successful: <line>" or "Failure: <line>"
+// Skips the first line (plugin header).
+// Format: "Successful: <line>" or "Failure: <line>", or just "Success"/"Failure"
 func (p *BuildPhaseParser) ExtractSummary(found []string) string {
 	var lastError, lastWarning, lastInfo string
 
-	for _, l := range found {
+	for i, l := range found {
+		if i == 0 {
+			continue // Skip header
+		}
 		if len(l) == 0 {
 			continue
 		}
@@ -63,7 +67,10 @@ func (p *BuildPhaseParser) ExtractSummary(found []string) string {
 	if lastWarning != "" {
 		return "Successful: " + lastWarning
 	}
-	return "Successful: " + lastInfo
+	if lastInfo != "" {
+		return "Successful: " + lastInfo
+	}
+	return "Successful"
 }
 
 // ParseMetaData extracts metadata from the found lines.
