@@ -116,6 +116,38 @@ func isSimpleBuildingLine(line string) bool {
 	return strings.HasPrefix(line, "[INFO] Building ")
 }
 
+// isLongSeparator checks for the 70-dash separator line (with optional trailing whitespace)
+func isLongDashSeparator(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	return strings.HasPrefix(trimmed, "[INFO] ------------------------------------------------------------------------")
+}
+
+// isSimpleModuleHeaderMultiLine checks for the 3-line simple module header format:
+// When called with idx, it checks if lines[idx], lines[idx+1], lines[idx+2] form:
+// [INFO] ------------------------------------------------------------------------  (idx)
+// [INFO] Building <name> <version>                            (idx+1)
+// [INFO] ------------------------------------------------------------------------  (idx+2)
+func isSimpleModuleHeaderMultiLine(lines []string, idx int) bool {
+	if idx+2 >= len(lines) {
+		return false
+	}
+	// Check if lines starting at idx form the multi-line header
+	firstIsSep := isLongDashSeparator(lines[idx])
+	secondIsBuilding := isSimpleBuildingLine(lines[idx+1])
+	thirdIsSep := isLongDashSeparator(lines[idx+2])
+	return firstIsSep && secondIsBuilding && thirdIsSep
+}
+
+// isReactorHeaderMultiLine checks for the 2-line reactor header format:
+// [INFO] ------------------------------------------------------------------------
+// [INFO] Reactor Build Order:
+func isReactorHeaderMultiLine(lines []string, idx int) bool {
+	if idx+1 >= len(lines) {
+		return false
+	}
+	return isLongDashSeparator(lines[idx]) && isReactorHeader(lines[idx+1])
+}
+
 // Build status detection
 func isBuildSuccess(line string) bool { return BuildSuccessRegex.MatchString(line) }
 func isBuildFailure(line string) bool { return BuildFailureRegex.MatchString(line) }

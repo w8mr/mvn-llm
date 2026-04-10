@@ -16,58 +16,51 @@ func (p *ModulePhaseParser) ExtractLines(lines []string, startIdx int) ([]string
 		return nil, 0, false
 	}
 
-	// Check for standard header OR simple "Building <name>" format
-	// Simple format is only used as fallback when there's no standard header
-	if !isModuleHeader(lines[startIdx]) && !isSimpleModuleHeader(lines, startIdx) {
+	// Check for standard header OR simple "Building <name>" format OR multi-line simple format
+	if !isModuleHeader(lines[startIdx]) && !isSimpleModuleHeaderMultiLine(lines, startIdx) && !isSimpleBuildingLine(lines[startIdx]) {
 		return nil, 0, false
 	}
 
 	// Track what type we started with
 	startedWithStandardHeader := isModuleHeader(lines[startIdx])
-	startedWithSimpleHeader := isSimpleModuleHeader(lines, startIdx)
+	startedWithMultiLineSimple := isSimpleModuleHeaderMultiLine(lines, startIdx)
+	startedWithSimpleHeader := !startedWithStandardHeader && !startedWithMultiLineSimple && isSimpleBuildingLine(lines[startIdx])
 
+	// Start after header (skip the multi-line separator + "Building" + separator if present)
 	end := startIdx + 1
+	if startedWithMultiLineSimple {
+		end = startIdx + 3 // Skip first separator, "Building" line, and second separator
+	}
+
 	for ; end < len(lines); end++ {
 		line := lines[end]
+		isSimpleFormat := startedWithSimpleHeader || startedWithMultiLineSimple
 
-		// Check for module headers
-		isStandardHeader := isModuleHeader(line)
-		isSimpleHeader := isSimpleModuleHeader(lines, end)
+		// END CONDITIONS: Stop when we detect the START of another module header OR build block
 
-		// For simple format: we need to consume at least a few lines before checking for next "Building"
-		// The module format is: [INFO] Building <name> -> separator -> separator -> content -> next Building
-		// We only want to break when we see the next "Building" AFTER we've processed some content
-		// So we skip checking until we've seen at least 2 lines past startIdx
-		if startedWithSimpleHeader && (end > startIdx+2) && isSimpleBuildingLine(line) {
-			// This is a second "Building" line - this is the next module, stop here
+		// Check for multi-line module header starting at current position
+		if isSimpleModuleHeaderMultiLine(lines, end) {
 			break
 		}
 
-		// Simple header handling (using regex pattern):
-		// - If started with standard header: any simple header = new module
-		if isSimpleHeader {
-			if startedWithStandardHeader {
-				break
-			}
-		}
-
-		// Break on standard header (new module starts)
-		if isStandardHeader {
+		// Check for standard module header
+		if isModuleHeader(line) {
 			break
 		}
 
-		// Other end markers
-		// For simple format, exclude long separator and initialization separator
-		// because separators are part of the simple module format
-		if isPluginHeader(line) || isReactorHeader(line) || isReactorSummaryFor(line) {
+		// For standard format: stop at plugin headers (build blocks are parsed separately)
+		// For simple format: plugin headers are part of module content
+		if !isSimpleFormat && isPluginHeader(line) {
 			break
 		}
+
+		// Other end markers (reactor summary, etc.)
+		if isReactorHeader(line) || isReactorSummaryFor(line) {
+			break
+		}
+
 		// Only break on long separator if NOT using simple format
-		if !startedWithSimpleHeader && isLongSeparator(line) {
-			break
-		}
-		// Only break on initialization separator if NOT using simple format
-		if !startedWithSimpleHeader && isInitializationSeparator(line) {
+		if !isSimpleFormat && isLongSeparator(line) {
 			break
 		}
 	}
@@ -83,6 +76,10 @@ func (p *ModulePhaseParser) ExtractLines(lines []string, startIdx int) ([]string
 func isSimpleModuleHeader(lines []string, idx int) bool {
 	if idx >= len(lines) {
 		return false
+	}
+	// Check for multi-line format: separator + "Building ..." + separator
+	if isSimpleModuleHeaderMultiLine(lines, idx) {
+		return true
 	}
 	line := lines[idx]
 	// Don't use simple format if previous line was a standard header
@@ -107,7 +104,11 @@ func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, boo
 	name := ""
 	artifactId := ""
 	groupId := ""
-	// Try to get groupId:artifactId from header first line
+
+	// Check if this was a multi-line simple header starting at startIdx
+	isMultiLineSimpleAtStart := isSimpleModuleHeaderMultiLine(lines, startIdx)
+
+	// Try to get groupId:artifactId from standard header first line
 	for _, l := range found {
 		if isModuleHeader(l) {
 			if substrs := ModuleHeaderRegex.FindStringSubmatch(l); len(substrs) == 2 {
@@ -122,13 +123,37 @@ func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, boo
 			}
 		}
 	}
-	// Prefer meta["name"] (e.g., "Baker Types") from the "Building ..." line over artifactId (e.g., "baker-types")
-	if n, ok := meta["name"].(string); ok && n != "" {
-		name = n
-	} else if artifactId != "" {
-		name = artifactId
-	} else if groupId != "" {
-		name = groupId + ":" + artifactId
+
+	// For multi-line simple format, extract name from the "Building" line in found[1]
+	if isMultiLineSimpleAtStart && len(found) > 1 {
+		if strings.HasPrefix(found[1], "[INFO] Building ") {
+			content := found[1][len("[INFO] Building "):]
+			words := strings.Fields(content)
+			if len(words) >= 2 {
+				// Last word is version, everything before is the name
+				name = strings.Join(words[:len(words)-1], " ")
+			} else if len(words) == 1 {
+				name = words[0]
+			}
+		}
+	}
+
+	// Fallback: try meta["name"] if name still empty
+	if name == "" {
+		if n, ok := meta["name"].(string); ok && n != "" {
+			name = n
+		}
+	}
+
+	// If name not set from multi-line, try meta["name"] (e.g., "Baker Types" from the "Building ..." line)
+	if name == "" {
+		if n, ok := meta["name"].(string); ok && n != "" {
+			name = n
+		} else if artifactId != "" {
+			name = artifactId
+		} else if groupId != "" {
+			name = groupId + ":" + artifactId
+		}
 	}
 	node := &Node{
 		Name:  name,

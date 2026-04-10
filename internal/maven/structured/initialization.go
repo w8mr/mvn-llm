@@ -33,17 +33,27 @@ func (p *InitializationPhaseParser) ExtractLines(lines []string, startIdx int) (
 	for i := startIdx; i < len(lines); i++ {
 		line := lines[i]
 
-		// Check for key initialization markers
+		// Check for key initialization markers (single line or multi-line)
 		if line == "[INFO] Scanning for projects..." {
 			hasScanningForProjects = true
 		}
-		if isReactorHeader(line) {
+		// Check for single-line reactor header OR multi-line format
+		if isReactorHeader(line) || isReactorHeaderMultiLine(lines, i) {
 			hasReactorBuildOrder = true
 		}
 
 		// END CONDITIONS:
-		// Only end initialization on module header or plugin header
-		// OR on simple "Building <name>" lines if we don't have valid initialization markers yet
+		// Stop when we detect the START of a module header (standard or multi-line)
+		// Check for multi-line module header starting at current position
+		if isSimpleModuleHeaderMultiLine(lines, i) {
+			// Multi-line module header starts here - stop before it
+			if hasScanningForProjects || hasReactorBuildOrder {
+				return lines[startIdx:i], i - startIdx, true
+			}
+			return nil, 0, false
+		}
+
+		// Check for standard module header or plugin header
 		if isInitializationSeparator(line) {
 			// Valid initialization block requires at least one key marker
 			if hasScanningForProjects || hasReactorBuildOrder {
@@ -53,7 +63,7 @@ func (p *InitializationPhaseParser) ExtractLines(lines []string, startIdx int) (
 			return nil, 0, false
 		}
 
-		// For simple "Building <name>" lines: only end block if we have valid initialization markers
+		// For simple "Building <name>" lines (single-line format): only end block if we have valid initialization markers
 		// This prevents early termination for files like HawtJNI that use simple format
 		if isSimpleBuildingLine(line) && (hasScanningForProjects || hasReactorBuildOrder) {
 			return lines[startIdx:i], i - startIdx, true
