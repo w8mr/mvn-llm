@@ -48,20 +48,21 @@ cd maven-tool
 make      # or: go build -o mvn-llm ./cmd/mvn-llm
 ```
 
-### Usage: LLM Agent Integration
-
-Agents (orchestrators, tool-use frameworks, AI dev tools) call:
+### Usage
 
 ```sh
 mvn-llm <goal> [flags]
 ```
 Where `<goal>` is any Maven phase, e.g. `install`, `test`, `package`, `compile`, or `deps`.
 
-Recommended flags for LLMs:
-- Use `-o text` for a one-line agent-ready summary (for chat output, dialogue, or intent chaining)
-- Use `-o json` for parseable, rich responses
-- Use `-dep-ancestor` for reasoning about dependency trees ("why does module X depend on Y?")
-- Use `-output-file` to persist outputs for agent planning or state
+#### Parsing existing Maven output (advanced)
+
+If you already have a Maven log file and want to parse it without running Maven:
+
+```sh
+mvn-llm < build.log
+cat build.log | mvn-llm
+```
 
 #### Common flags
 

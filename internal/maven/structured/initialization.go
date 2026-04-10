@@ -1,6 +1,8 @@
 package structured
 
-import "strings"
+import (
+	"strings"
+)
 
 // InitializationPhaseParser parses the Maven initialization section at the start of the log.
 // This includes the Reactor Build Order section listing all modules to be built.
@@ -15,35 +17,63 @@ func (p *InitializationPhaseParser) NodeType() string {
 
 // ExtractLines finds one initialization block starting at startIdx.
 func (p *InitializationPhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
-	if startIdx > 0 {
-		return nil, 0, false
-	}
-	if len(lines) == 0 || !strings.HasPrefix(lines[0], "[INFO]") {
+	if len(lines) == 0 || startIdx >= len(lines) {
 		return nil, 0, false
 	}
 
-	start := startIdx
-	end := startIdx
-	inReactorSection := false
-	for i := start; i < len(lines); i++ {
+	// Must start exactly at startIdx with Maven output (valid log level OR Apache Maven header)
+	if !isMavenLogLine(lines[startIdx]) && !strings.HasPrefix(lines[startIdx], "Apache Maven") {
+		return nil, 0, false
+	}
+
+	// Track key initialization markers
+	hasScanningForProjects := false
+	hasReactorBuildOrder := false
+
+	for i := startIdx; i < len(lines); i++ {
 		line := lines[i]
+
+		// Check for key initialization markers
+		if line == "[INFO] Scanning for projects..." {
+			hasScanningForProjects = true
+		}
 		if isReactorHeader(line) {
-			inReactorSection = true
+			hasReactorBuildOrder = true
 		}
-		if inReactorSection {
-			if isInitializationSeparator(line) || isBuildSeparator(line) {
-				break
+
+		// END CONDITIONS:
+		// Only end initialization on module header or plugin header
+		// OR on simple "Building <name>" lines if we don't have valid initialization markers yet
+		if isInitializationSeparator(line) {
+			// Valid initialization block requires at least one key marker
+			if hasScanningForProjects || hasReactorBuildOrder {
+				return lines[startIdx:i], i - startIdx, true
 			}
-			if !strings.HasPrefix(line, "[INFO]") {
-				break
-			}
-			end = i + 1
+			// Not a valid initialization block without key markers
+			return nil, 0, false
+		}
+
+		// For simple "Building <name>" lines: only end block if we have valid initialization markers
+		// This prevents early termination for files like HawtJNI that use simple format
+		if isSimpleBuildingLine(line) && (hasScanningForProjects || hasReactorBuildOrder) {
+			return lines[startIdx:i], i - startIdx, true
 		}
 	}
-	if end > start {
-		return lines[start:end], end - startIdx, true
+
+	// End of file - valid if we have at least one key marker
+	if hasScanningForProjects || hasReactorBuildOrder {
+		return lines[startIdx:], len(lines) - startIdx, true
 	}
+
 	return nil, 0, false
+}
+
+// isMavenLogLine checks if a line is Maven output (valid log levels like [INFO], [DEBUG], etc.)
+func isMavenLogLine(line string) bool {
+	return strings.HasPrefix(line, "[INFO]") ||
+		strings.HasPrefix(line, "[DEBUG]") ||
+		strings.HasPrefix(line, "[WARNING]") ||
+		strings.HasPrefix(line, "[ERROR]")
 }
 
 // ParseMetaData extracts metadata from the found lines.

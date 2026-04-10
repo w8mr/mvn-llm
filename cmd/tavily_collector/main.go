@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -48,13 +49,28 @@ func main() {
 
 	client := &http.Client{Timeout: 60 * time.Second}
 	count := 0
+	seenURLs := make(map[string]bool)
+
+	// Load existing URLs to avoid duplicates
+	filepath.Walk(*storageDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if strings.HasSuffix(path, ".meta") {
+			if data, err := os.ReadFile(path); err == nil {
+				seenURLs[string(data)] = true
+			}
+		}
+		return nil
+	})
+	fmt.Printf("Found %d existing URLs to skip\n", len(seenURLs))
 
 	queries := []string{
-		"maven build log filetype:log BUILD SUCCESS",
-		"maven test failure \"BUILD FAILURE\" filetype:log",
-		"maven CI build output.txt",
-		"maven test output log.txt",
-		"pom.xml mvn test output",
+		"site:build.alpinelinux.org BUILD SUCCESS",
+		"site:thebusybiscuit.github.io BUILD SUCCESS",
+		"site:kojipkgs.fedoraproject.org BUILD SUCCESS",
+		"site:download.eclipse.org maven build log",
+		"site:download.oracle.com glassfish maven",
 	}
 
 	for iteration := 0; iteration < *maxIterations && count < *maxExamples; iteration++ {
@@ -73,6 +89,13 @@ func main() {
 			if count >= *maxExamples {
 				break
 			}
+
+			// Skip duplicates
+			if seenURLs[link.URL] {
+				fmt.Printf("Skipping duplicate: %s\n", link.URL)
+				continue
+			}
+			seenURLs[link.URL] = true
 
 			fmt.Printf("Fetching: %s\n", link.URL)
 			content, err := fetchURL(client, link.URL)

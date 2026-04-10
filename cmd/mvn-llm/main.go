@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -50,6 +51,16 @@ func mainLogic() {
 	depFilter := flag.String("dep-filter", "", "Filter dependencies (e.g., 'junit')")
 	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
 	depVerbose := flag.Bool("dep-verbose", false, "Show verbose dependency tree")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: mvn-llm [goal] [flags]  OR  mvn-llm < logfile\n")
+		fmt.Fprintf(os.Stderr, "\nRun Maven goal:\n")
+		flag.VisitAll(func(f *flag.Flag) {
+			fmt.Fprintf(os.Stderr, "  -%s %s\n", f.Name, f.Usage)
+		})
+		fmt.Fprintf(os.Stderr, "\nParse from stdin/redirect:\n")
+		fmt.Fprintf(os.Stderr, "  cat logfile | mvn-llm\n")
+		fmt.Fprintf(os.Stderr, "  mvn-llm < logfile\n")
+	}
 	flag.Parse()
 
 	parseConfig := structured.ParseConfig{
@@ -58,19 +69,40 @@ func mainLogic() {
 		"depVerbose":  *depVerbose,
 	}
 
-	if *goal == "" {
-		fmt.Fprintln(os.Stderr, "Usage: mvn-llm -goal <goal> [flags]")
-		flag.PrintDefaults()
-		os.Exit(2)
-	}
-	ctx := context.Background()
 	var mvnOut interface{}
 	var mvnErr error
-	opts := maven.MavenOpts{
-		NoClean:    *noClean,
-		ResumeFrom: *resumeFrom,
+	var summary string
+	ctx := context.Background()
+
+	if *goal != "" {
+		// Run Maven goal
+		opts := maven.MavenOpts{
+			NoClean:    *noClean,
+			ResumeFrom: *resumeFrom,
+		}
+		mvnOut, mvnErr = intent.HandleMavenGoal(ctx, *projectRoot, *goal, opts)
+	} else {
+		// Read from stdin
+		stat, err := os.Stdin.Stat()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error: Could not read stdin")
+			os.Exit(1)
+		}
+		// Check if stdin is a pipe, redirect, or has data
+		if (stat.Mode() & os.ModeCharDevice) != 0 {
+			// No goal and no stdin - show usage
+			fmt.Fprintln(os.Stderr, "Usage: mvn-llm -goal <goal> [flags]  OR  mvn-llm < logfile")
+			flag.PrintDefaults()
+			os.Exit(2)
+		}
+		data, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to read stdin: %v\n", err)
+			os.Exit(1)
+		}
+		mvnOut = string(data)
+		mvnErr = nil
 	}
-	mvnOut, mvnErr = intent.HandleMavenGoal(ctx, *projectRoot, *goal, opts)
 
 	outputTypes := strings.Split(*output, ",")
 
@@ -100,7 +132,7 @@ func mainLogic() {
 			if outStr, ok := mvnOut.(string); ok {
 				parser := structured.NewOutputParser()
 				structuredOut := parser.ParseOutput(splitLines(outStr), mvnErr, parseConfig)
-				summary := structured.TextSummary(structuredOut)
+				summary = structured.TextSummary(structuredOut)
 				fmt.Println(summary)
 			}
 		}

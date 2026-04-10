@@ -14,6 +14,12 @@ var (
 	// Capture groups: [1] = groupId:artifactId
 	ModuleHeaderRegex = regexp.MustCompile(`^\[INFO\] [-]+< ([^>]+) >[-]+$`)
 
+	// Alternative simple module header pattern: matches "Building <name> <version>" format
+	// Only used as fallback when no standard header is present
+	// Matches: [INFO] Building HawtJNI 1.6
+	// Capture groups: [1] = module name, [2] = version
+	ModuleHeaderSimpleRegex = regexp.MustCompile(`^\[INFO\] Building ([A-Za-z][A-Za-z0-9\-]*)\s+(\d+[\d.]*(?:-\S+)?)\s*$`)
+
 	// Module packaging separator pattern: captures packaging type
 	// Matches: [INFO] --------------------------------[ jar ]---------------------------------
 	// Capture groups: [1] = packaging (jar, pom, war, etc.)
@@ -46,7 +52,7 @@ var (
 func isModuleBuildingLine(line string) bool { return strings.HasPrefix(line, "[INFO] Building") }
 func isModulePomFileLine(line string) bool  { return strings.HasPrefix(line, "[INFO]   from") }
 
-// Module header detection (full line matching)
+// Module header detection - checks standard format only
 func isModuleHeader(line string) bool {
 	return ModuleHeaderRegex.MatchString(line)
 }
@@ -70,10 +76,10 @@ func isLongSeparator(line string) bool {
 	return trimmed == "[INFO] ------------------------------------------------------------------------"
 }
 
-// Separator detection (any dash line) - for general use
+// Separator detection (dash lines of various lengths)
 func isSeparator(line string) bool {
 	trimmed := strings.TrimSpace(line)
-	return trimmed == "[INFO] -------------------------------------------------------"
+	return strings.HasPrefix(trimmed, "[INFO] ") && strings.HasSuffix(trimmed, "---")
 }
 
 // Alias for compatibility
@@ -89,6 +95,11 @@ func isReactorHeader(line string) bool {
 	return line == "[INFO] Reactor Build Order:"
 }
 
+// Initialization header detection (Scanning for projects)
+func isInitializationHeader(line string) bool {
+	return strings.HasPrefix(line, "[INFO] Scanning for projects")
+}
+
 // Reactor Summary for header detection
 func isReactorSummaryFor(line string) bool {
 	return ReactorSummaryForRegex.MatchString(line)
@@ -97,6 +108,12 @@ func isReactorSummaryFor(line string) bool {
 // Initialization separator detection (module header OR plugin header)
 func isInitializationSeparator(line string) bool {
 	return isModuleHeader(line) || isPluginHeader(line)
+}
+
+// isSimpleBuildingLine checks for simple "Building <name> <version>" format
+// Only used in initialization parser with context-aware logic
+func isSimpleBuildingLine(line string) bool {
+	return strings.HasPrefix(line, "[INFO] Building ")
 }
 
 // Build status detection
