@@ -21,6 +21,7 @@ package structured
 //   - By stopping at ANY marker (not just siblings), we allow child blocks to be parsed
 //     as separate nodes by the main OutputParser loop
 //   - The main loop uses bubble-up insertion logic to place children in the correct parent
+//   - StartMarker should be strict (strong markers only) to avoid false positives in boundary detection
 //   - This approach keeps block extraction simple while enabling rich hierarchical structures
 //
 // Example: When parsing a module block that contains build blocks:

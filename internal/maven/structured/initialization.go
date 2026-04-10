@@ -10,24 +10,28 @@ type InitializationPhaseParser struct {
 	BaseParser
 }
 
-// StartMarker: detects initialization block header
-// Looks for Maven log lines or "Apache Maven" header that indicate initialization start
+// StartMarker: only matches strong initialization markers.
+// This is used by ParseUntilNextBlock to detect boundaries - must be strict
+// to avoid stopping inside module content at generic [INFO] lines.
 func (p *InitializationPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
 	if len(lines) == 0 || idx >= len(lines) {
 		return false, 0
 	}
-	// Accept Apache Maven header or specific initialization markers
-	if strings.HasPrefix(lines[idx], "Apache Maven") {
+	line := lines[idx]
+
+	// Accept Apache Maven header
+	if strings.HasPrefix(line, "Apache Maven") {
 		return true, 1
 	}
-	// Check for "Scanning for projects..." which is a strong initialization marker
-	if lines[idx] == "[INFO] Scanning for projects..." {
+
+	// Accept strong initialization markers only
+	if line == "[INFO] Scanning for projects..." {
 		return true, 1
 	}
-	// Check for reactor build order header (can also start initialization)
-	if isReactorHeader(lines[idx]) || isReactorHeaderMultiLine(lines, idx) {
+	if isReactorHeader(line) || isReactorHeaderMultiLine(lines, idx) {
 		return true, 1
 	}
+
 	return false, 0
 }
 
@@ -37,9 +41,22 @@ func (p *InitializationPhaseParser) NodeType() string {
 }
 
 // ExtractLines finds one initialization block starting at startIdx.
-// It must contain key initialization markers to be valid.
+// Can start at a strong marker OR a generic Maven log line (soft marker).
+// Must contain key initialization markers to be valid.
 func (p *InitializationPhaseParser) ExtractLines(lines []string, startIdx int, allParsers []Parser) ([]string, int, bool) {
-	if ok, _ := p.StartMarker(lines, startIdx); !ok {
+	if startIdx >= len(lines) {
+		return nil, 0, false
+	}
+
+	// Check for strong markers first
+	strongMarker, _ := p.StartMarker(lines, startIdx)
+
+	// Also accept soft markers (generic Maven log lines)
+	line := lines[startIdx]
+	softMarker := isMavenLogLine(line)
+
+	// Must start with either strong or soft marker
+	if !strongMarker && !softMarker {
 		return nil, 0, false
 	}
 
