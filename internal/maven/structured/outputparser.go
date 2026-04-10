@@ -86,6 +86,8 @@ func (p *OutputParser) bubbleUpAndInsert(root *Node, node Node) bool {
 // the node type), it bubbles up to find a valid parent. Unparsable lines are combined
 // into single nodes when consecutive.
 func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
+	allParsers := p.Parsers
+
 	if startIdx != 0 {
 		return nil, 0, false
 	}
@@ -106,9 +108,9 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 		validTypes := getValidTypesUpChain(p.currentInsertionNode)
 
 		// Only try parsers that can produce valid node types for current or ancestor levels
-		for _, parser := range p.Parsers {
+		for _, parser := range allParsers {
 			if contains(validTypes, parser.NodeType()) {
-				node, consumed, ok := parser.Parse(lines, idx)
+				node, consumed, ok := parser.Parse(lines, idx, allParsers)
 				if ok {
 					if !p.bubbleUpAndInsert(&root, *node) {
 						errors.FatalWithMavenLog(lines, "Parser could not find valid insertion point for node type %q", node.Type)

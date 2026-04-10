@@ -11,28 +11,43 @@ type SummaryPhaseParser struct {
 	BaseParser
 }
 
+// StartMarker: detects summary section start (long separator followed by Reactor Summary)
+func (p *SummaryPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
+	if idx >= len(lines) {
+		return false, 0
+	}
+	// Summary starts with a long separator line followed by "Reactor Summary"
+	if !isLongSeparator(lines[idx]) {
+		return false, 0
+	}
+	// Must be followed by "Reactor Summary" to be the start of summary block
+	if idx+1 < len(lines) {
+		nextLine := lines[idx+1]
+		if strings.HasPrefix(nextLine, "[INFO] Reactor Summary") {
+			return true, 1
+		}
+	}
+	return false, 0
+}
+
 // NodeType returns the node type this parser produces.
 func (p *SummaryPhaseParser) NodeType() string {
 	return "summary"
 }
 
 // ExtractLines finds the summary section starting at startIdx.
-// Returns lines from startIdx to end of slice.
-// Summary is always at the end of Maven output, preceded by [INFO] ------------------------------------------------------------------------.
-func (p *SummaryPhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
-	if startIdx >= len(lines) {
-		return nil, 0, false
-	}
-	if lines[startIdx] != "[INFO] ------------------------------------------------------------------------" {
+func (p *SummaryPhaseParser) ExtractLines(lines []string, startIdx int, allParsers []Parser) ([]string, int, bool) {
+	ok, markerLen := p.StartMarker(lines, startIdx)
+	if !ok {
 		return nil, 0, false
 	}
 
-	// Summary is always at end of file, trim trailing empty lines
-	end := len(lines)
-	for end > startIdx && strings.TrimSpace(lines[end-1]) == "" {
-		end--
-	}
-	return lines[startIdx:end], end - startIdx, true
+	startOfContent := startIdx + markerLen
+	_, consumed := ParseUntilNextBlock(lines, startOfContent, allParsers, "summary")
+
+	// Summary typically goes to end of file - consume all remaining lines
+	totalConsumed := markerLen + consumed
+	return lines[startIdx : startIdx+totalConsumed], totalConsumed, true
 }
 
 // ParseMetaData extracts metadata from the found summary lines.
@@ -155,8 +170,8 @@ func (p *SummaryPhaseParser) ParseMetaData(found []string) map[string]any {
 }
 
 // Parse combines ExtractLines and ParseMetaData for backward compatibility.
-func (p *SummaryPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
-	found, consumed, ok := p.ExtractLines(lines, startIdx)
+func (p *SummaryPhaseParser) Parse(lines []string, startIdx int, allParsers []Parser) (*Node, int, bool) {
+	found, consumed, ok := p.ExtractLines(lines, startIdx, allParsers)
 	if !ok {
 		return nil, 0, false
 	}

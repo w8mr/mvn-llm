@@ -8,67 +8,48 @@ import (
 // ModulePhaseParser parses Maven module phases (from module header until next phase).
 type ModulePhaseParser struct{}
 
+// StartMarker: detects if lines[idx:] are the start of a module block (header).
+// Returns (matched, markerLen), supporting single-line and multi-line headers.
+func (p *ModulePhaseParser) StartMarker(lines []string, idx int) (bool, int) {
+	if idx >= len(lines) {
+		return false, 0
+	}
+	// Check for standard module header (highest priority)
+	if isModuleHeader(lines[idx]) {
+		return true, 1
+	}
+	// Check for multi-line simple format: separator + "Building..." + separator
+	if isSimpleModuleHeaderMultiLine(lines, idx) {
+		return true, 3 // separator + building + separator
+	}
+	// Check for simple "Building <name> <version>" line using the regex
+	// ONLY if previous line is NOT a standard header
+	// (to avoid matching "Building" lines that are part of standard module blocks)
+	if ModuleHeaderSimpleRegex.MatchString(lines[idx]) {
+		if idx > 0 && isModuleHeader(lines[idx-1]) {
+			return false, 0 // This is part of a standard module block, not a standalone header
+		}
+		return true, 1
+	}
+	return false, 0
+}
+
 func (p *ModulePhaseParser) NodeType() string { return "module" }
 
 // ExtractLines finds one module block starting at startIdx.
-func (p *ModulePhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
-	if len(lines) < startIdx+1 {
+func (p *ModulePhaseParser) ExtractLines(lines []string, startIdx int, allParsers []Parser) ([]string, int, bool) {
+	ok, markerLen := p.StartMarker(lines, startIdx)
+	if !ok {
 		return nil, 0, false
 	}
 
-	// Check for standard header OR simple "Building <name>" format OR multi-line simple format
-	if !isModuleHeader(lines[startIdx]) && !isSimpleModuleHeaderMultiLine(lines, startIdx) && !isSimpleBuildingLine(lines[startIdx]) {
-		return nil, 0, false
-	}
+	// Read from end of marker to next parser block
+	startOfContent := startIdx + markerLen
+	_, consumed := ParseUntilNextBlock(lines, startOfContent, allParsers, "module")
 
-	// Track what type we started with
-	startedWithStandardHeader := isModuleHeader(lines[startIdx])
-	startedWithMultiLineSimple := isSimpleModuleHeaderMultiLine(lines, startIdx)
-	startedWithSimpleHeader := !startedWithStandardHeader && !startedWithMultiLineSimple && isSimpleBuildingLine(lines[startIdx])
-
-	// Start after header (skip the multi-line separator + "Building" + separator if present)
-	end := startIdx + 1
-	if startedWithMultiLineSimple {
-		end = startIdx + 3 // Skip first separator, "Building" line, and second separator
-	}
-
-	for ; end < len(lines); end++ {
-		line := lines[end]
-		isSimpleFormat := startedWithSimpleHeader || startedWithMultiLineSimple
-
-		// END CONDITIONS: Stop when we detect the START of another module header OR build block
-
-		// Check for multi-line module header starting at current position
-		if isSimpleModuleHeaderMultiLine(lines, end) {
-			break
-		}
-
-		// Check for standard module header
-		if isModuleHeader(line) {
-			break
-		}
-
-		// For standard format: stop at plugin headers (build blocks are parsed separately)
-		// For simple format: plugin headers are part of module content
-		if !isSimpleFormat && isPluginHeader(line) {
-			break
-		}
-
-		// Other end markers (reactor summary, etc.)
-		if isReactorHeader(line) || isReactorSummaryFor(line) {
-			break
-		}
-
-		// Only break on long separator if NOT using simple format
-		if !isSimpleFormat && isLongSeparator(line) {
-			break
-		}
-	}
-
-	if end > startIdx {
-		return lines[startIdx:end], end - startIdx, true
-	}
-	return nil, 0, false
+	// Module block must include the marker + content
+	totalConsumed := markerLen + consumed
+	return lines[startIdx : startIdx+totalConsumed], totalConsumed, true
 }
 
 // isSimpleModuleHeader checks if line is a simple "Building <name> <version>" format
@@ -95,8 +76,8 @@ func (p *ModulePhaseParser) ParseMetaData(found []string) map[string]any {
 }
 
 // Parse combines ExtractLines and ParseMetaData.
-func (p *ModulePhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
-	found, consumed, ok := p.ExtractLines(lines, startIdx)
+func (p *ModulePhaseParser) Parse(lines []string, startIdx int, allParsers []Parser) (*Node, int, bool) {
+	found, consumed, ok := p.ExtractLines(lines, startIdx, allParsers)
 	if !ok {
 		return nil, 0, false
 	}

@@ -67,17 +67,23 @@ func TestParse_MultiLineModuleHeader(t *testing.T) {
 	// Check that modules were parsed correctly
 	if firstModule != nil {
 		t.Logf("First module has %d children and %d lines", len(firstModule.Children), len(firstModule.Lines))
-		// For simple format, build blocks are included in the module lines but not parsed as children
-		// This is acceptable - they can be parsed later if needed
-		if len(firstModule.Lines) < 5 {
-			t.Errorf("Expected module 'HawtJNI' to have content lines, got %d lines", len(firstModule.Lines))
+		// Module should have build blocks as children now (refactored behavior)
+		if len(firstModule.Children) < 2 {
+			t.Errorf("Expected module 'HawtJNI' to have build block children, got %d children", len(firstModule.Children))
+		}
+		// Module lines should contain at least the header (3 lines for multi-line format)
+		if len(firstModule.Lines) < 3 {
+			t.Errorf("Expected module 'HawtJNI' to have header lines, got %d lines", len(firstModule.Lines))
 		}
 	}
 
 	if secondModule != nil {
 		t.Logf("Second module has %d children and %d lines", len(secondModule.Children), len(secondModule.Lines))
-		if len(secondModule.Lines) < 5 {
-			t.Errorf("Expected module 'HawtJNI-native' to have content lines, got %d lines", len(secondModule.Lines))
+		if len(secondModule.Children) < 2 {
+			t.Errorf("Expected module 'HawtJNI-native' to have build block children, got %d children", len(secondModule.Children))
+		}
+		if len(secondModule.Lines) < 3 {
+			t.Errorf("Expected module 'HawtJNI-native' to have header lines, got %d lines", len(secondModule.Lines))
 		}
 	}
 }

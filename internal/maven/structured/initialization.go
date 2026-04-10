@@ -10,63 +10,70 @@ type InitializationPhaseParser struct {
 	BaseParser
 }
 
+// StartMarker: detects initialization block header
+// Looks for Maven log lines or "Apache Maven" header that indicate initialization start
+func (p *InitializationPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
+	if len(lines) == 0 || idx >= len(lines) {
+		return false, 0
+	}
+	// Accept Apache Maven header or specific initialization markers
+	if strings.HasPrefix(lines[idx], "Apache Maven") {
+		return true, 1
+	}
+	// Check for "Scanning for projects..." which is a strong initialization marker
+	if lines[idx] == "[INFO] Scanning for projects..." {
+		return true, 1
+	}
+	// Check for reactor build order header (can also start initialization)
+	if isReactorHeader(lines[idx]) || isReactorHeaderMultiLine(lines, idx) {
+		return true, 1
+	}
+	return false, 0
+}
+
 // NodeType returns the node type this parser produces.
 func (p *InitializationPhaseParser) NodeType() string {
 	return "initialization"
 }
 
 // ExtractLines finds one initialization block starting at startIdx.
-func (p *InitializationPhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
-	if len(lines) == 0 || startIdx >= len(lines) {
+// It must contain key initialization markers to be valid.
+func (p *InitializationPhaseParser) ExtractLines(lines []string, startIdx int, allParsers []Parser) ([]string, int, bool) {
+	if ok, _ := p.StartMarker(lines, startIdx); !ok {
 		return nil, 0, false
 	}
 
-	// Must start exactly at startIdx with Maven output (valid log level OR Apache Maven header)
-	if !isMavenLogLine(lines[startIdx]) && !strings.HasPrefix(lines[startIdx], "Apache Maven") {
-		return nil, 0, false
-	}
-
-	// Track key initialization markers
+	// Track key initialization markers for validation
 	hasScanningForProjects := false
 	hasReactorBuildOrder := false
 
+	// Scan through content starting from startIdx to find required markers and detect end
 	for i := startIdx; i < len(lines); i++ {
 		line := lines[i]
 
-		// Check for key initialization markers (single line or multi-line)
+		// Check for key initialization markers
 		if line == "[INFO] Scanning for projects..." {
 			hasScanningForProjects = true
 		}
-		// Check for single-line reactor header OR multi-line format
 		if isReactorHeader(line) || isReactorHeaderMultiLine(lines, i) {
 			hasReactorBuildOrder = true
 		}
 
-		// END CONDITIONS:
-		// Stop when we detect the START of a module header (standard or multi-line)
-		// Check for multi-line module header starting at current position
-		if isSimpleModuleHeaderMultiLine(lines, i) {
-			// Multi-line module header starts here - stop before it
-			if hasScanningForProjects || hasReactorBuildOrder {
-				return lines[startIdx:i], i - startIdx, true
+		// Check if any other parser's block is starting (end of initialization)
+		if i > startIdx {
+			for _, parser := range allParsers {
+				// Don't check against ourselves
+				if parser.NodeType() == "initialization" {
+					continue
+				}
+				if ok, _ := parser.StartMarker(lines, i); ok {
+					// Found start of another block - end initialization here if valid
+					if hasScanningForProjects || hasReactorBuildOrder {
+						return lines[startIdx:i], i - startIdx, true
+					}
+					return nil, 0, false
+				}
 			}
-			return nil, 0, false
-		}
-
-		// Check for standard module header or plugin header
-		if isInitializationSeparator(line) {
-			// Valid initialization block requires at least one key marker
-			if hasScanningForProjects || hasReactorBuildOrder {
-				return lines[startIdx:i], i - startIdx, true
-			}
-			// Not a valid initialization block without key markers
-			return nil, 0, false
-		}
-
-		// For simple "Building <name>" lines (single-line format): only end block if we have valid initialization markers
-		// This prevents early termination for files like HawtJNI that use simple format
-		if isSimpleBuildingLine(line) && (hasScanningForProjects || hasReactorBuildOrder) {
-			return lines[startIdx:i], i - startIdx, true
 		}
 	}
 
@@ -134,8 +141,8 @@ func (p *InitializationPhaseParser) ParseMetaData(found []string) map[string]any
 }
 
 // Parse combines ExtractLines and ParseMetaData for backward compatibility.
-func (p *InitializationPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
-	found, consumed, ok := p.ExtractLines(lines, startIdx)
+func (p *InitializationPhaseParser) Parse(lines []string, startIdx int, allParsers []Parser) (*Node, int, bool) {
+	found, consumed, ok := p.ExtractLines(lines, startIdx, allParsers)
 	if !ok {
 		return nil, 0, false
 	}

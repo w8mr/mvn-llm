@@ -8,31 +8,34 @@ type BuildPhaseParser struct {
 	BaseParser
 }
 
+// StartMarker: detects if lines[idx] is a build block (plugin execution header)
+func (p *BuildPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
+	if idx >= len(lines) {
+		return false, 0
+	}
+	if isPluginHeader(lines[idx]) {
+		return true, 1
+	}
+	return false, 0
+}
+
 // NodeType returns the node type this parser produces.
 func (p *BuildPhaseParser) NodeType() string {
 	return "build-block"
 }
 
 // ExtractLines finds one build block starting at startIdx.
-func (p *BuildPhaseParser) ExtractLines(lines []string, startIdx int) ([]string, int, bool) {
-	if startIdx >= len(lines) {
+func (p *BuildPhaseParser) ExtractLines(lines []string, startIdx int, allParsers []Parser) ([]string, int, bool) {
+	ok, markerLen := p.StartMarker(lines, startIdx)
+	if !ok {
 		return nil, 0, false
 	}
-	if !isPluginHeader(lines[startIdx]) {
-		return nil, 0, false
-	}
-	start := startIdx
-	end := start + 1
-	for end < len(lines) {
-		if isPluginHeader(lines[end]) || isModuleHeader(lines[end]) || isLongSeparator(lines[end]) {
-			break
-		}
-		end++
-	}
-	for end < len(lines) && isEmptyInfoLine(lines[end]) {
-		end++
-	}
-	return lines[start:end], end - startIdx, true
+
+	startOfContent := startIdx + markerLen
+	_, consumed := ParseUntilNextBlock(lines, startOfContent, allParsers, "build-block")
+
+	totalConsumed := markerLen + consumed
+	return lines[startIdx : startIdx+totalConsumed], totalConsumed, true
 }
 
 // ExtractSummary extracts a summary line from the found lines.
@@ -126,8 +129,8 @@ func (p *BuildPhaseParser) ParseMetaData(found []string) map[string]any {
 }
 
 // Parse combines ExtractLines and ParseMetaData for backward compatibility.
-func (p *BuildPhaseParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
-	found, consumed, ok := p.ExtractLines(lines, startIdx)
+func (p *BuildPhaseParser) Parse(lines []string, startIdx int, allParsers []Parser) (*Node, int, bool) {
+	found, consumed, ok := p.ExtractLines(lines, startIdx, allParsers)
 	if !ok {
 		return nil, 0, false
 	}
