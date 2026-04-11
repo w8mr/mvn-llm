@@ -618,3 +618,51 @@ func TestLineNumbers(t *testing.T) {
 		t.Error("No children found to verify")
 	}
 }
+
+func TestParse_SummaryBeforeInitialization(t *testing.T) {
+	mavenOutput := `[INFO] ---< com.example:module-a >---
+[INFO] Building module-a 1.0-SNAPSHOT
+[INFO] --- compiler:3.1.0:compile (default-compile) @ module-a ---
+[INFO] Compiling 1 source file
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO] module-a ....................................... SUCCESS [  0.5 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] module-b                                                       [jar]
+[INFO] ------------------------------------------------------------------------`
+
+	lines := strings.Split(strings.ReplaceAll(mavenOutput, "\r\n", "\n"), "\n")
+	parser := NewOutputParser()
+	out := parser.ParseOutput(lines, nil, ParseConfig{})
+
+	t.Logf("Root children count: %d", len(out.Root.Children))
+	for i, child := range out.Root.Children {
+		t.Logf("Child %d: Type=%q, Name=%q", i, child.Type, child.Name)
+	}
+
+	// Expected: 3 children - module, summary, initialization (in that order)
+	if len(out.Root.Children) != 3 {
+		t.Errorf("Expected 3 children, got %d", len(out.Root.Children))
+	}
+
+	// First child should be module
+	if len(out.Root.Children) > 0 && out.Root.Children[0].Type != "module" {
+		t.Errorf("First child should be module, got %q", out.Root.Children[0].Type)
+	}
+
+	// Second child should be summary
+	if len(out.Root.Children) > 1 && out.Root.Children[1].Type != "summary" {
+		t.Errorf("Second child should be summary, got %q", out.Root.Children[1].Type)
+	}
+
+	// Third child should be initialization
+	if len(out.Root.Children) > 2 && out.Root.Children[2].Type != "initialization" {
+		t.Errorf("Third child should be initialization, got %q", out.Root.Children[2].Type)
+	}
+}

@@ -31,10 +31,10 @@ type OutputParser struct {
 func NewOutputParser() *OutputParser {
 	return &OutputParser{
 		Parsers: []Parser{
+			&SummaryPhaseParser{},
 			&InitializationPhaseParser{},
 			&ModulePhaseParser{},
 			&BuildPhaseParser{},
-			&SummaryPhaseParser{},
 		},
 		currentInsertionNode: nil,
 	}
