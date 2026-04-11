@@ -34,6 +34,7 @@ func NewOutputParser() *OutputParser {
 			&SummaryPhaseParser{},
 			&InitializationPhaseParser{},
 			&ModulePhaseParser{},
+			&CompilerPhaseParser{}, // Check compiler before generic build
 			&BuildPhaseParser{},
 		},
 		currentInsertionNode: nil,
