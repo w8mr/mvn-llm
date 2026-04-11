@@ -619,6 +619,44 @@ func TestLineNumbers(t *testing.T) {
 	}
 }
 
+func TestFindFirstMismatch(t *testing.T) {
+	// Test case: missing line in parsed
+	original := []string{"a", "b", "c", "d"}
+	parsed := []string{"a", "c", "d"}
+	missingIdx, extraIdx := FindFirstMismatch(original, parsed)
+	if missingIdx != 1 {
+		t.Errorf("Expected missing at 1, got %d", missingIdx)
+	}
+	if extraIdx != -1 {
+		t.Errorf("Expected extra at -1, got %d", extraIdx)
+	}
+
+	// Test case: extra lines (more lines in parsed)
+	original = []string{"a", "b"}
+	parsed = []string{"a", "b", "c", "d"}
+	missingIdx, extraIdx = FindFirstMismatch(original, parsed)
+	if missingIdx != -1 {
+		t.Errorf("Expected missing at -1, got %d", missingIdx)
+	}
+	if extraIdx != 2 {
+		t.Errorf("Expected extra at 2, got %d", extraIdx)
+	}
+
+	// Test case: no mismatch
+	original = []string{"a", "b", "c"}
+	parsed = []string{"a", "b", "c"}
+	missingIdx, extraIdx = FindFirstMismatch(original, parsed)
+	if missingIdx != -1 || extraIdx != -1 {
+		t.Errorf("Expected no mismatch, got %d, %d", missingIdx, extraIdx)
+	}
+
+	// Test case: identical
+	missingIdx, extraIdx = FindFirstMismatch(original, original)
+	if missingIdx != -1 || extraIdx != -1 {
+		t.Errorf("Expected no mismatch, got %d, %d", missingIdx, extraIdx)
+	}
+}
+
 func TestParse_SummaryBeforeInitialization(t *testing.T) {
 	mavenOutput := `[INFO] ---< com.example:module-a >---
 [INFO] Building module-a 1.0-SNAPSHOT

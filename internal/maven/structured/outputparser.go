@@ -181,7 +181,15 @@ func (p *OutputParser) ParseOutput(lines []string, err error, config ParseConfig
 	if strict && ok {
 		collected := collectAllLines(root)
 		if !LinesMatch(lines, collected) {
-			errors.FatalWithMavenLog(lines, "Parsing may have lost lines. Original: %d, Parsed: %d", len(lines), len(collected))
+			missingIdx, extraIdx := FindFirstMismatch(lines, collected)
+			if missingIdx >= 0 {
+				errors.FatalWithMavenLog(lines, "Parsing lost lines. Original: %d, Parsed: %d. First missing at line %d: %q",
+					len(lines), len(collected), missingIdx+1, lines[missingIdx])
+			}
+			if extraIdx >= 0 {
+				errors.FatalWithMavenLog(lines, "Parsing added lines. Original: %d, Parsed: %d. First extra at line %d: %q",
+					len(lines), len(collected), extraIdx+1, collected[extraIdx])
+			}
 		}
 	}
 
@@ -366,4 +374,24 @@ func stripLinesRecursive(node *Node) {
 // Used to verify parsing preserves all original lines.
 func LinesMatch(original, parsed []string) bool {
 	return reflect.DeepEqual(original, parsed)
+}
+
+// FindFirstMismatch finds the first index where lines differ.
+// Returns (missingIdx, extraIdx) where:
+// - missingIdx >= 0: line exists in original but not in parsed at that index
+// - extraIdx >= 0: line exists in parsed but not in original at that index
+// Returns (-1, -1) if no mismatch found.
+func FindFirstMismatch(original, parsed []string) (int, int) {
+	// Check for missing lines (in original but not in parsed)
+	for i := range original {
+		if i >= len(parsed) || original[i] != parsed[i] {
+			return i, -1
+		}
+	}
+	// Check for extra lines (in parsed but not in original)
+	if len(parsed) > len(original) {
+		return -1, len(original)
+	}
+	// No mismatch (should not happen if LinesMatch already returned false)
+	return -1, -1
 }
