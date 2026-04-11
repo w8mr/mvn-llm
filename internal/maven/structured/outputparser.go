@@ -110,8 +110,11 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 		// Only try parsers that can produce valid node types for current or ancestor levels
 		for _, parser := range allParsers {
 			if contains(validTypes, parser.NodeType()) {
+				lineStart := idx + 1 // 1-based
 				node, consumed, ok := parser.Parse(lines, idx, allParsers)
 				if ok {
+					node.StartLine = lineStart
+					node.EndLine = lineStart + consumed - 1
 					if !p.bubbleUpAndInsert(&root, *node) {
 						errors.FatalWithMavenLog(lines, "Parser could not find valid insertion point for node type %q", node.Type)
 					}
@@ -129,15 +132,18 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 				if p.currentInsertionNode.Children[lastIdx].Type == "unparsable" {
 					p.currentInsertionNode.Children[lastIdx].Lines = append(
 						p.currentInsertionNode.Children[lastIdx].Lines, lines[idx])
+					p.currentInsertionNode.Children[lastIdx].EndLine = idx + 1
 					idx++
 					continue
 				}
 			}
 			// New unparsable node - bubble up if needed
 			unparsable := Node{
-				Name:  "unparsable",
-				Type:  "unparsable",
-				Lines: []string{lines[idx]},
+				Name:      "unparsable",
+				Type:      "unparsable",
+				Lines:     []string{lines[idx]},
+				StartLine: idx + 1,
+				EndLine:   idx + 1,
 			}
 			if !p.bubbleUpAndInsert(&root, unparsable) {
 				errors.FatalWithMavenLog(lines, "Parser could not find valid insertion point for node type %q", unparsable.Type)
@@ -146,6 +152,8 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 		}
 	}
 
+	root.StartLine = 1
+	root.EndLine = len(lines)
 	return &root, len(lines), true
 }
 

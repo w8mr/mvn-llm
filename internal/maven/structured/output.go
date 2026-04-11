@@ -4,12 +4,14 @@ package structured
 // It forms a tree structure where each node may have children.
 // Parent is a back-reference for traversal (not serialized).
 type Node struct {
-	Name     string         `json:"name"`
-	Type     string         `json:"type"`
-	Lines    []string       `json:"lines,omitempty"`
-	Meta     map[string]any `json:"meta,omitempty"`
-	Children []Node         `json:"children,omitempty"`
-	Parent   *Node          `json:"-"`
+	Name      string         `json:"name"`
+	Type      string         `json:"type"`
+	Lines     []string       `json:"lines,omitempty"`
+	Meta      map[string]any `json:"meta,omitempty"`
+	Children  []Node         `json:"children,omitempty"`
+	Parent    *Node          `json:"-"`
+	StartLine int            `json:"startLine"` // 1-based inclusive
+	EndLine   int            `json:"endLine"`   // 1-based inclusive
 }
 
 // StructuredOutput is the top-level result of parsing Maven output.
