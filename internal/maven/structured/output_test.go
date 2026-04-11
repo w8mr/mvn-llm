@@ -568,3 +568,50 @@ func TestJSONSummary_MultipleModulesMultipleErrors(t *testing.T) {
 		t.Errorf("Expected:\n%s\nGot:\n%s", expected, string(jsonBytes))
 	}
 }
+
+func TestLineNumbers(t *testing.T) {
+	mavenOutput := `[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] my-app                                                       [jar]
+[INFO] 
+[INFO] ---< com.example:my-app >---
+[INFO] Building my-app 1.0-SNAPSHOT                                   [1/1]
+[INFO]   from myapp/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ my-app ---
+[INFO] Compiling 1 source file
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO] my-app ....................................... SUCCESS [  1.234 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------`
+
+	lines := strings.Split(strings.ReplaceAll(mavenOutput, "\r\n", "\n"), "\n")
+	parser := NewOutputParser()
+	out := parser.ParseOutput(lines, nil, ParseConfig{})
+
+	if out.Root.StartLine != 1 {
+		t.Errorf("Root StartLine should be 1, got %d", out.Root.StartLine)
+	}
+	if out.Root.EndLine != len(lines) {
+		t.Errorf("Root EndLine should be %d, got %d", len(lines), out.Root.EndLine)
+	}
+
+	hasStartLine := false
+	for _, child := range out.Root.Children {
+		if child.StartLine == 0 || child.EndLine == 0 {
+			t.Errorf("Child %s has missing line numbers: startLine=%d, endLine=%d", child.Name, child.StartLine, child.EndLine)
+		}
+		hasStartLine = true
+		if child.EndLine < child.StartLine {
+			t.Errorf("Child %s has invalid range: startLine=%d > endLine=%d", child.Name, child.StartLine, child.EndLine)
+		}
+	}
+	if !hasStartLine {
+		t.Error("No children found to verify")
+	}
+}

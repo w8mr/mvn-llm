@@ -57,6 +57,14 @@ func TestParse_UnparsablePhaseBlockBeforeModuleHeader(t *testing.T) {
 		}
 	}
 
+	// Test StartLine and EndLine are set correctly
+	if parsed.Root.StartLine != 1 {
+		t.Errorf("Root should have StartLine=1, got %d", parsed.Root.StartLine)
+	}
+	if parsed.Root.EndLine != len(lines) {
+		t.Errorf("Root should have EndLine=%d, got %d", len(lines), parsed.Root.EndLine)
+	}
+
 	moduleNode := findChildByType(parsed.Root.Children, "module")
 	if moduleNode == nil {
 		t.Error("Expected module node")
