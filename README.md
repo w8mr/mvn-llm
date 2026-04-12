@@ -85,6 +85,26 @@ cat build.log | mvn-llm
 - **json-full-with-lines (`-o json-full-with-lines`):** Full structured JSON with lines
 - **maven-output (`-o maven-output`):** Raw Maven output
 
+### Plugin-specific Parsing
+
+The CLI includes specialized parsers for common Maven plugins that extract enhanced metadata:
+
+| Plugin | Alias | Extracted Fields |
+|--------|-------|----------------|
+| **compiler** | maven-compiler-plugin | `compilationErrors[]`, `compilationWarnings[]`, `sourceFiles`, `compilerArgs[]`, `sourceVersion`, `targetVersion`, `incremental` |
+| **surefire** | maven-surefire-plugin | `testResults{runs,failures,errors,skipped}`, `testFailures[]`, `testClass`, `provider` |
+| **failsafe** | maven-failsafe-plugin | `testResults{runs,failures,errors,skipped}`, `testFailures[]`, `testClass` |
+| **jar** | maven-jar-plugin | `jarFile`, `manifest` |
+| **war** | maven-war-plugin | `overlay`, `webXml` |
+| **ear** | maven-ear-plugin | `includes[]`, `excludes[]` |
+| **install** | maven-install-plugin | `artifact`, `path` |
+| **deploy** | maven-deploy-plugin | `artifact`, `path` |
+| **resources** | maven-resources-plugin | `skipped`, `encoding`, `resourceType`, `source`, `target` |
+| **source** | maven-source-plugin | `sourceJar` |
+| **clean** | maven-clean-plugin | `deleted` |
+
+Each plugin block in the JSON output includes these fields when present in the Maven output.
+
 ### Examples for LLMs
 
 - **Get a one-line summary for intent/correction:**
