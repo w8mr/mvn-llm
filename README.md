@@ -89,21 +89,100 @@ cat build.log | mvn-llm
 
 The CLI includes specialized parsers for common Maven plugins that extract enhanced metadata:
 
-| Plugin | Alias | Extracted Fields |
-|--------|-------|----------------|
-| **compiler** | maven-compiler-plugin | `compilationErrors[]`, `compilationWarnings[]`, `sourceFiles`, `compilerArgs[]`, `sourceVersion`, `targetVersion`, `incremental` |
-| **surefire** | maven-surefire-plugin | `testResults{runs,failures,errors,skipped}`, `testFailures[]`, `testClass`, `provider` |
-| **failsafe** | maven-failsafe-plugin | `testResults{runs,failures,errors,skipped}`, `testFailures[]`, `testClass` |
-| **jar** | maven-jar-plugin | `jarFile`, `manifest` |
-| **war** | maven-war-plugin | `overlay`, `webXml` |
-| **ear** | maven-ear-plugin | `includes[]`, `excludes[]` |
-| **install** | maven-install-plugin | `artifact`, `path` |
-| **deploy** | maven-deploy-plugin | `artifact`, `path` |
-| **resources** | maven-resources-plugin | `skipped`, `encoding`, `resourceType`, `source`, `target` |
-| **source** | maven-source-plugin | `sourceJar` |
-| **clean** | maven-clean-plugin | `deleted` |
+#### compiler (maven-compiler-plugin)
+Compiles Java source code. Extracts:
+- `compilationErrors[]` - Array of `{file, line, column, message}` for each compile error
+- `compilationWarnings[]` - Array of `{file, line, column, message}` for each warning
+- `sourceVersion` - Java version used for source (e.g., "11")
+- `targetVersion` - Java version for compiled classes
+- `compilerArgs[]` - Flags passed to javac (e.g., ["debug", "target", "11"])
+- `incremental` - Boolean if build was incremental
 
-Each plugin block in the JSON output includes these fields when present in the Maven output.
+Example JSON:
+```json
+{
+  "name": "compiler",
+  "meta": {
+    "plugin": "compiler",
+    "status": "FAILED",
+    "compilationErrors": [
+      {"file": "/path/ src/Main.java", "line": 9, "column": 16, "message": "';' expected"}
+    ]
+  }
+}
+```
+
+#### surefire (maven-surefire-plugin)
+Runs unit tests (mvn test). Extracts:
+- `testResults` - Object with `{runs, failures, errors, skipped}` counts
+- `testFailures[]` - Array of `{class, method, error}` for each failed test
+- `testClass` - Fully qualified test class name that ran
+- `provider` - Test provider used (e.g., "org.apache.maven.surefire.junit4.JUnit4Provider")
+
+Example JSON:
+```json
+{
+  "name": "surefire",
+  "meta": {
+    "plugin": "surefire",
+    "status": "FAILED",
+    "testResults": {"runs": 3, "failures": 1, "errors": 0, "skipped": 0},
+    "testFailures": [
+      {"class": "CalculatorTest", "method": "testFail", "error": "This test always fails"}
+    ]
+  }
+}
+```
+
+#### failsafe (maven-failsafe-plugin)
+Runs integration tests (mvn verify). Same fields as surefire:
+- `testResults{runs,failures,errors,skipped}`
+- `testFailures[]` - Failed test details
+- `testClass` - Integration test class
+
+#### jar (maven-jar-plugin)
+Creates JAR artifacts. Extracts:
+- `jarFile` - Path to the built JAR file
+- `manifest` - Manifest file path if specified
+
+#### war (maven-war-plugin)
+Creates WAR web archives. Extracts:
+- `overlay` - Whether WAR overlays were used ("enabled")
+- `webXml` - Path to web.xml if configured
+
+#### ear (maven-ear-plugin)
+Creates EAR enterprise archives. Extracts:
+- `includes[]` - Files included in the EAR
+- `excludes[]` - Files excluded from the EAR
+
+#### install (maven-install-plugin)
+Installs artifacts to local repository. Extracts:
+- `artifact` - Artifact coordinates (groupId:artifactId:version)
+- `path` - Local path where artifact was installed
+
+#### deploy (maven-deploy-plugin)
+Deploys artifacts to remote repository. Same fields as install:
+- `artifact` - Artifact coordinates
+- `path` - Path to deployed file
+
+#### resources (maven-resources-plugin)
+Copies resources. Extracts:
+- `skipped` - What was skipped (e.g., "resourceDirectory")
+- `encoding` - Encoding used (e.g., "UTF-8")
+- `source` - Source directory path
+- `target` - Target directory path
+
+#### source (maven-source-plugin)
+Creates source JARs. Extracts:
+- `sourceJar` - Path to the generated source JAR
+
+#### clean (maven-clean-plugin)
+Cleans build output. Extracts:
+- `deleted` - Path that was deleted (e.g., ".../target")
+
+---
+
+Each plugin block in the JSON output includes these extra fields when present in the Maven output, alongside the base fields: `plugin`, `version`, `goal`, `executionId`, `artifactId`, `status`, and `summary`.
 
 ### Examples for LLMs
 
