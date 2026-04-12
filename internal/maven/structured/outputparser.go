@@ -34,6 +34,7 @@ func NewOutputParser() *OutputParser {
 			&SummaryPhaseParser{},
 			&InitializationPhaseParser{},
 			&ModulePhaseParser{},
+			&DependencyTreeParser{},
 			&CompilerPhaseParser{},
 			&FailsafePhaseParser{},
 			&SurefirePhaseParser{},

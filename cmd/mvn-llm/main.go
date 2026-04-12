@@ -132,7 +132,7 @@ func mainLogic() {
 			if outStr, ok := mvnOut.(string); ok {
 				parser := structured.NewOutputParser()
 				structuredOut := parser.ParseOutput(splitLines(outStr), mvnErr, parseConfig)
-				summary = structured.TextSummary(structuredOut)
+				summary = structured.TextSummaryWithConfig(structuredOut, parseConfig)
 				fmt.Println(summary)
 			}
 		}
