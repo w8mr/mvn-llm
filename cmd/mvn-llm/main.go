@@ -48,9 +48,7 @@ func mainLogic() {
 	noClean := flag.Bool("no-clean", false, "Skip mvn clean before build")
 	resumeFrom := flag.String("rf", "", "Resume build from specified module")
 	output := flag.String("o", "text", "Output format(s): text, json, json-full, json-full-with-lines, maven-output")
-	depFilter := flag.String("dep-filter", "", "Filter dependencies (e.g., 'junit')")
-	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency")
-	depVerbose := flag.Bool("dep-verbose", false, "Show verbose dependency tree")
+	depAncestor := flag.String("dep-ancestor", "", "Show ancestors for this dependency (e.g., 'junit' or 'group:artifact')")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: mvn-llm [goal] [flags]  OR  mvn-llm < logfile\n")
 		fmt.Fprintf(os.Stderr, "\nRun Maven goal:\n")
@@ -64,9 +62,7 @@ func mainLogic() {
 	flag.Parse()
 
 	parseConfig := structured.ParseConfig{
-		"depFilter":   *depFilter,
 		"depAncestor": *depAncestor,
-		"depVerbose":  *depVerbose,
 	}
 
 	var mvnOut interface{}

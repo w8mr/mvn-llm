@@ -75,7 +75,6 @@ cat build.log | mvn-llm
 | `-dep-verbose`            | Verbose dependency info (detailed subtrees)                |
 | `-project-root <dir>`     | Project root (default: `.`)                                |
 | `-no-clean`               | Skip running `mvn clean` before building                   |
-| `-dep-filter <expr>`      | (deps only) Filter dependencies                            |
 
 ### Output Formats
 
@@ -213,7 +212,7 @@ com.example:module-a:1.0-SNAPSHOT
 
 Use `-dep-ancestor` flag to filter dependencies:
 ```sh
-mvn-llm deps -dep-ancestor junit -o text
+mvn-llm dependency:tree -dep-ancestor junit -o text
 # Shows only dependencies matching 'junit'
 ```
 
@@ -229,24 +228,18 @@ mvn-llm deps -dep-ancestor junit -o text
 
 - **Output a full, machine-parsable dependency tree:**
   ```sh
-  mvn-llm deps -o json
+  mvn-llm dependency:tree -o json
   {
-    "modules": [
-      {
-        "moduleName": "my-app-module-a",
-        "root": {
-          "groupId": "com.example",
-          "artifactId": "module-a",
-          "children": [ ... ]
-        }
-      }, ...
+    "root": { "groupId": "com.example", "artifactId": "module-a", "version": "1.0.0" },
+    "dependencies": [
+      { "groupId": "junit", "artifactId": "junit", "version": "4.12" }, ...
     ]
   }
   ```
 
 - **Answer the "why" behind a dependency (provenance/reasoning):**
   ```sh
-  mvn-llm deps -dep-ancestor junit:junit -o text
+  mvn-llm dependency:tree -dep-ancestor junit:junit -o text
   # junit:junit
   #     |
   #     +- ...
