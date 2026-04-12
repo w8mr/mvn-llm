@@ -180,9 +180,42 @@ Creates source JARs. Extracts:
 Cleans build output. Extracts:
 - `deleted` - Path that was deleted (e.g., ".../target")
 
----
+#### dependency (maven-dependency-plugin)
+Analyzes project dependencies (mvn dependency:tree). Extracts:
+- `root` - Object with `{groupId, artifactId, version}` for the project being analyzed
+- `dependencies[]` - Array of dependency objects with `{groupId, artifactId, version, scope}`
 
-Each plugin block in the JSON output includes these extra fields when present in the Maven output, alongside the base fields: `plugin`, `version`, `goal`, `executionId`, `artifactId`, `status`, and `summary`.
+Example JSON:
+```json
+{
+  "name": "module-a-tree",
+  "type": "dependency-tree",
+  "meta": {
+    "root": {
+      "groupId": "com.example",
+      "artifactId": "module-a",
+      "version": "1.0-SNAPSHOT"
+    },
+    "dependencies": [
+      {"groupId": "junit", "artifactId": "junit", "version": "4.12:test"},
+      {"groupId": "com.google.guava", "artifactId": "guava", "version": "30.1-jre:compile"}
+    ]
+  }
+}
+```
+
+Text output displays tree in Maven format:
+```
+com.example:module-a:1.0-SNAPSHOT
++- junit:junit:4.12:test
++- com.google.guava:guava:30.1-jre:compile
+```
+
+Use `-dep-ancestor` flag to filter dependencies:
+```sh
+mvn-llm deps -dep-ancestor junit -o text
+# Shows only dependencies matching 'junit'
+```
 
 ### Examples for LLMs
 
