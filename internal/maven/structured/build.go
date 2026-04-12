@@ -135,6 +135,7 @@ func (p *BuildPhaseParser) Parse(lines []string, startIdx int, allParsers []Pars
 		return nil, 0, false
 	}
 	meta := p.ParseMetaData(found)
+
 	node := &Node{
 		Name:  meta["plugin"].(string),
 		Type:  "build-block",
