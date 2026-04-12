@@ -16,7 +16,7 @@ type JarPhaseParser struct {
 }
 
 func (p *JarPhaseParser) NodeType() string {
-	return "build-block"
+	return "jar-block"
 }
 
 func (p *JarPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
@@ -67,7 +67,7 @@ type InstallPhaseParser struct {
 }
 
 func (p *InstallPhaseParser) NodeType() string {
-	return "build-block"
+	return "install-block"
 }
 
 func (p *InstallPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
@@ -116,7 +116,7 @@ type DeployPhaseParser struct {
 }
 
 func (p *DeployPhaseParser) NodeType() string {
-	return "build-block"
+	return "deploy-block"
 }
 
 func (p *DeployPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
@@ -171,7 +171,7 @@ type ResourcesPhaseParser struct {
 }
 
 func (p *ResourcesPhaseParser) NodeType() string {
-	return "build-block"
+	return "resources-block"
 }
 
 func (p *ResourcesPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
@@ -234,7 +234,7 @@ type SourcePhaseParser struct {
 }
 
 func (p *SourcePhaseParser) NodeType() string {
-	return "build-block"
+	return "source-block"
 }
 
 func (p *SourcePhaseParser) StartMarker(lines []string, idx int) (bool, int) {
@@ -287,7 +287,7 @@ type CleanPhaseParser struct {
 }
 
 func (p *CleanPhaseParser) NodeType() string {
-	return "build-block"
+	return "clean-block"
 }
 
 func (p *CleanPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
@@ -317,6 +317,14 @@ func (p *CleanPhaseParser) ParseMetaData(found []string) map[string]any {
 }
 
 func (p *CleanPhaseParser) Parse(lines []string, startIdx int, allParsers []Parser) (*Node, int, bool) {
+	if !isPluginHeader(lines[startIdx]) {
+		return nil, 0, false
+	}
+	plugin := extractPluginName(lines[startIdx])
+	if plugin != "clean" && !strings.HasPrefix(plugin, "maven-clean") {
+		return nil, 0, false
+	}
+
 	found, consumed, ok := p.ExtractLines(lines, startIdx, allParsers)
 	if !ok {
 		return nil, 0, false
@@ -341,7 +349,7 @@ type WarPhaseParser struct {
 }
 
 func (p *WarPhaseParser) NodeType() string {
-	return "build-block"
+	return "war-block"
 }
 
 func (p *WarPhaseParser) StartMarker(lines []string, idx int) (bool, int) {
@@ -397,7 +405,7 @@ type EarPhaseParser struct {
 }
 
 func (p *EarPhaseParser) NodeType() string {
-	return "build-block"
+	return "ear-block"
 }
 
 func (p *EarPhaseParser) StartMarker(lines []string, idx int) (bool, int) {

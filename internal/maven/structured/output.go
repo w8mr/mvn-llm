@@ -22,13 +22,22 @@ type StructuredOutput struct {
 // AcceptanceMap defines which child node types each parent node type can contain.
 // Empty list means the node type cannot have children.
 var AcceptanceMap = map[string][]string{
-	"root":           {"initialization", "module", "summary", "unparsable"},
-	"module":         {"build-block", "surefire-block", "failsafe-block", "unparsable"},
-	"build-block":    {},
-	"summary":        {},
-	"initialization": {},
-	"surefire-block": {},
-	"failsafe-block": {},
+	"root":            {"initialization", "module", "summary", "unparsable"},
+	"module":          {"build-block", "surefire-block", "failsafe-block", "compiler-block", "jar-block", "install-block", "deploy-block", "resources-block", "source-block", "clean-block", "war-block", "ear-block", "unparsable"},
+	"build-block":     {},
+	"summary":         {},
+	"initialization":  {},
+	"surefire-block":  {},
+	"failsafe-block":  {},
+	"compiler-block":  {},
+	"jar-block":       {},
+	"install-block":   {},
+	"deploy-block":    {},
+	"resources-block": {},
+	"source-block":    {},
+	"clean-block":     {},
+	"war-block":       {},
+	"ear-block":       {},
 }
 
 // CanInsert checks whether a child node can be inserted as a child of the given parent type.

@@ -120,19 +120,20 @@ func (p *OutputParser) Parse(lines []string, startIdx int) (*Node, int, bool) {
 
 		// Only try parsers that can produce valid node types for current or ancestor levels
 		for _, parser := range allParsers {
-			if contains(validTypes, parser.NodeType()) {
-				lineStart := idx + 1 // 1-based
-				node, consumed, ok := parser.Parse(lines, idx, allParsers)
-				if ok {
-					node.StartLine = lineStart
-					node.EndLine = lineStart + consumed - 1
-					if !p.bubbleUpAndInsert(&root, *node) {
-						errors.FatalWithMavenLog(lines, "Parser could not find valid insertion point for node type %q", node.Type)
-					}
-					idx += consumed
-					matched = true
-					break
+			if !contains(validTypes, parser.NodeType()) {
+				continue
+			}
+			lineStart := idx + 1 // 1-based
+			node, consumed, ok := parser.Parse(lines, idx, allParsers)
+			if ok {
+				node.StartLine = lineStart
+				node.EndLine = lineStart + consumed - 1
+				if !p.bubbleUpAndInsert(&root, *node) {
+					errors.FatalWithMavenLog(lines, "Parser could not find valid insertion point for node type %q", node.Type)
 				}
+				idx += consumed
+				matched = true
+				break
 			}
 		}
 

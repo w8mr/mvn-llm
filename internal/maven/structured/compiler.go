@@ -23,9 +23,9 @@ type CompilerPhaseParser struct {
 	BuildPhaseParser
 }
 
-// NodeType returns "build-block" (same as parent, but with enhanced metadata)
+// NodeType returns a unique type for compiler plugin
 func (p *CompilerPhaseParser) NodeType() string {
-	return "build-block"
+	return "compiler-block"
 }
 
 // StartMarker detects if lines[idx] is a compiler plugin block

@@ -141,6 +141,15 @@ func (p *SurefirePhaseParser) ParseMetaData(found []string) map[string]any {
 }
 
 func (p *SurefirePhaseParser) Parse(lines []string, startIdx int, allParsers []Parser) (*Node, int, bool) {
+	// Verify this is actually a surefire plugin block
+	if !isPluginHeader(lines[startIdx]) {
+		return nil, 0, false
+	}
+	plugin := extractPluginName(lines[startIdx])
+	if plugin != "surefire" && !strings.HasPrefix(plugin, "maven-surefire") {
+		return nil, 0, false
+	}
+
 	found, consumed, ok := p.ExtractLines(lines, startIdx, allParsers)
 	if !ok {
 		return nil, 0, false
